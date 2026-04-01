@@ -12,6 +12,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
-
+      - name: Create .env.local
+        run: |
+          cat << 'EOF' > .env.local
+          AKAHU_USER_TOKEN=${{ secrets.AKAHU_USER_TOKEN }}
+          AKAHU_APP_TOKEN=${{ secrets.AKAHU_APP_TOKEN }}
+          EOF
       - name: Rebuild and restart
         run: docker compose -f ./docker-compose.yml up --build -d
