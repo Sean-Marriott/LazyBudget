@@ -3,6 +3,7 @@ import { NetWorthCard } from "@/components/dashboard/NetWorthCard";
 import { MonthSummaryCard } from "@/components/dashboard/MonthSummaryCard";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { AccountsSummary } from "@/components/dashboard/AccountsSummary";
+import { CashflowCard } from "@/components/dashboard/CashflowCard";
 import { getAllAccounts, getNetWorthSummary } from "@/lib/queries/accounts";
 import { getRecentTransactions, getMonthSummary } from "@/lib/queries/transactions";
 
@@ -69,6 +70,9 @@ export default async function DashboardPage() {
 
             {/* Recent transactions — spans 2 cols on large screens */}
             <RecentTransactions transactions={recentTx} />
+
+            {/* Cashflow Sankey — full width */}
+            <CashflowCard />
           </div>
         )}
       </main>

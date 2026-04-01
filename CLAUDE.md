@@ -54,6 +54,16 @@ docker compose down     # Stop PostgreSQL
 
 **shadcn/ui components** live in `src/components/ui/` — add new ones with `npx shadcn@latest add <component>`.
 
+**Path alias:** `@/*` maps to `src/*` — use this everywhere instead of relative imports.
+
+**TypeScript types:** Always infer from schema via `$inferSelect` (e.g. `typeof accounts.$inferSelect`) — never define separate interfaces for DB entities.
+
+**Numeric fields:** Drizzle returns `numeric(12,2)` columns as strings. Use `toNumber()` from `src/lib/utils/currency.ts` whenever reading money values from DB results.
+
+**Category resolution order:** `userCategory` → `akahuCategory` → `'Uncategorised'`. Mirror this with `coalesce(userCategory, akahuCategory, 'Uncategorised')` in queries.
+
+**No ESLint configured** — `npx tsc --noEmit` and `npm run build` are the only code quality gates.
+
 ## Database schema overview
 
 | Table | Purpose |
