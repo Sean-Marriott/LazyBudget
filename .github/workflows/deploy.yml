@@ -1,0 +1,15 @@
+name: Deploy
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Pull latest code
+        run: git -C /home/sean/LazyBudget pull origin master
+
+      - name: Rebuild and restart
+        run: docker compose -f /home/sean/LazyBudget/docker-compose.yml up --build -d

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { TopBar } from "@/components/layout/TopBar";
 import { AccountCard } from "@/components/accounts/AccountCard";
 import { getAllAccounts, getNetWorthSummary } from "@/lib/queries/accounts";
