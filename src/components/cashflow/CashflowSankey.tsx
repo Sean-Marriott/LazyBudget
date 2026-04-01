@@ -8,6 +8,12 @@ import { formatCurrency } from "@/lib/utils/currency";
 const INCOME_COLOR = "#9ece6a";
 const SAVINGS_COLOR = "#73daca";
 
+/**
+ * Selects the hex color used to render a Sankey node based on its name.
+ *
+ * @param name - The node's name (e.g., "Income", "Savings", or a category)
+ * @returns A hex color string; uses specific colors for "Income" and "Savings", otherwise the color associated with the category name.
+ */
 function getNodeColor(name: string): string {
   if (name === "Income") return INCOME_COLOR;
   if (name === "Savings") return SAVINGS_COLOR;
@@ -21,6 +27,16 @@ interface Props {
   compact?: boolean;
 }
 
+/**
+ * Render a Sankey node as an SVG group containing a colored rounded rectangle and optional labels.
+ *
+ * The node's fill color is derived from `payload.name`. When `payload.depth === 0` the labels are
+ * positioned to the left; otherwise they are positioned to the right. If `compact` is true, labels
+ * are omitted.
+ *
+ * @param compact - When true, hide the node name and value labels
+ * @returns An SVG `<g>` element representing the node (rounded rect plus optional text labels)
+ */
 function CustomNode({ x, y, width, height, payload, compact }: SankeyNodeProps & { compact: boolean }) {
   const color = getNodeColor(payload.name);
   const isSource = payload.depth === 0;
@@ -49,7 +65,7 @@ function CustomNode({ x, y, width, height, payload, compact }: SankeyNodeProps &
             fill="#a9b1d6"
             fontSize={10}
           >
-            {formatCurrency(payload.value)}
+            {formatCurrency(payload.value ?? 0)}
           </text>
         </>
       )}
@@ -57,6 +73,12 @@ function CustomNode({ x, y, width, height, payload, compact }: SankeyNodeProps &
   );
 }
 
+/**
+ * Render an SVG path for a Sankey link using the provided geometry and the target node's color.
+ *
+ * @param payload - Sankey link payload; the target node's `name` is used to determine the link fill color
+ * @returns An SVG `<path>` element representing the link filled with the target node color (20% opacity) and no stroke
+ */
 function CustomLink({
   sourceX,
   targetX,
@@ -82,6 +104,17 @@ function CustomLink({
   return <path d={d} fill={color} fillOpacity={0.2} stroke="none" />;
 }
 
+/**
+ * Render a Sankey diagram visualizing income, spending by category, and optional savings.
+ *
+ * Renders a centered "No data — sync to see cashflow." message when `income` is 0 and `spending` is empty.
+ *
+ * @param income - Total income amount used as the Sankey source
+ * @param spending - Array of spending entries; each item should include `category` and `total`
+ * @param height - Height of the rendered chart in pixels (default: 300)
+ * @param compact - When true, uses a tighter layout and hides node labels (default: false)
+ * @returns A React element containing the cashflow Sankey diagram or the no-data message
+ */
 export function CashflowSankey({ income, spending, height = 300, compact = false }: Props) {
   if (income === 0 && spending.length === 0) {
     return (

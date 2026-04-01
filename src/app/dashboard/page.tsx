@@ -9,6 +9,16 @@ import { CashflowCard } from "@/components/dashboard/CashflowCard";
 import { getAllAccounts, getNetWorthSummary } from "@/lib/queries/accounts";
 import { getRecentTransactions, getMonthSummary } from "@/lib/queries/transactions";
 
+/**
+ * Render the dashboard page, fetching summary data and showing error, empty, or populated states.
+ *
+ * Fetches net worth, accounts, recent transactions, and the current month summary; then renders
+ * a top bar and main content that conditionally shows a database error banner, a welcome prompt
+ * when there is no data, or the full dashboard grid (net worth, month summary, accounts,
+ * recent transactions, and cashflow).
+ *
+ * @returns The rendered dashboard page JSX element
+ */
 export default async function DashboardPage() {
   let netWorth = { assets: 0, liabilities: 0, netWorth: 0 };
   let accounts: Awaited<ReturnType<typeof getAllAccounts>> = [];
