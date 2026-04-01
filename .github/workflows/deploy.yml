@@ -8,8 +8,10 @@ jobs:
   deploy:
     runs-on: self-hosted
     steps:
-      - name: Pull latest code
-        run: git -C /home/sean/LazyBudget pull origin master
+      - name: Checkout triggering commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
 
       - name: Rebuild and restart
-        run: docker compose -f /home/sean/LazyBudget/docker-compose.yml up --build -d
+        run: docker compose -f ./docker-compose.yml up --build -d
