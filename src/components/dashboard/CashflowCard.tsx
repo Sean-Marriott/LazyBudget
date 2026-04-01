@@ -3,6 +3,15 @@ import { CashflowSankey } from "@/components/cashflow/CashflowSankey";
 import { getMonthSummary, getMonthlySpendingByCategory } from "@/lib/queries/transactions";
 import { formatMonthLabel } from "@/lib/utils/dates";
 
+/**
+ * Render a cashflow card for the current month.
+ *
+ * Fetches the current month's income summary and spending-by-category data, then
+ * renders a Card containing a header with the formatted month and a
+ * CashflowSankey visualization configured with the fetched `income` and `spending`.
+ *
+ * @returns A React element: a Card with a month-labeled header and a CashflowSankey chart showing the current month's income and spending.
+ */
 export async function CashflowCard() {
   const now = new Date();
   const [{ income }, spending] = await Promise.all([

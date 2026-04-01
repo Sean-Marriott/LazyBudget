@@ -10,6 +10,17 @@ interface Props {
   month: Date;
 }
 
+/**
+ * Render a month navigation control used by the cashflow view.
+ *
+ * The control displays the given month as a label with left/right chevron buttons
+ * to navigate to the previous or next month. Navigation updates the URL to
+ * /cashflow?month=YYYY-MM. The "next" button is disabled when `month` is the
+ * current calendar month.
+ *
+ * @param month - Date representing the month to display and navigate from (year and month are used)
+ * @returns A React element with month navigation buttons and a centered month label
+ */
 export function MonthSelector({ month }: Props) {
   const router = useRouter();
 

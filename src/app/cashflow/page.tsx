@@ -9,6 +9,17 @@ interface SearchParams {
   month?: string;
 }
 
+/**
+ * Render the Cashflow page for a specific month.
+ *
+ * The component reads an optional `month` query parameter (format "yyyy-MM") from
+ * `searchParams`; when present it selects that month (normalized to the month's
+ * start), otherwise it uses the current month. It fetches the month's income
+ * summary and spending-by-category data and renders the page UI.
+ *
+ * @param searchParams - A promise resolving to query parameters; may include `month` in "yyyy-MM" format
+ * @returns The rendered React element for the cashflow view, including a month selector and a Sankey visualization of income and spending
+ */
 export default async function CashflowPage({
   searchParams,
 }: {
