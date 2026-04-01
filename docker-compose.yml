@@ -18,7 +18,7 @@ services:
   app:
     build: .
     ports:
-      - "3000:3000"
+      - "4242:3000"
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://lazybudget:lazybudget@postgres:5432/lazybudget}
       NODE_ENV: production
