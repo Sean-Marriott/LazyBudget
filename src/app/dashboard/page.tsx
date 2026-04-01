@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { TopBar } from "@/components/layout/TopBar";
 import { NetWorthCard } from "@/components/dashboard/NetWorthCard";
 import { MonthSummaryCard } from "@/components/dashboard/MonthSummaryCard";
