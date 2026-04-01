@@ -65,7 +65,7 @@ function CustomNode({ x, y, width, height, payload, compact }: SankeyNodeProps &
             fill="#a9b1d6"
             fontSize={10}
           >
-            {formatCurrency(payload.value)}
+            {formatCurrency(payload.value ?? 0)}
           </text>
         </>
       )}
