@@ -188,9 +188,18 @@ lazy-budget/
 
 See [Vercel Documentation](https://nextjs.org/docs/app/building-your-application/deploying) for deployment details.
 
-## Contributing
+## About This Project
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+LazyBudget is a personal project built primarily as a playground for experimenting with AI coding agents — specifically to explore how tools like Claude Code can assist with real-world software development tasks end-to-end. The finance app itself is the vehicle; the real interest is in the development process.
+
+### Akahu Personal Plan
+
+Financial data is sourced via [Akahu](https://www.akahu.nz), New Zealand's open finance platform. This project uses an Akahu **Personal App** — a free plan that gives API access to your own bank accounts and financial data. Key details:
+
+- **Cost:** Free for personal use
+- **Setup:** Create a profile at [my.akahu.nz](https://my.akahu.nz), connect your bank accounts, complete identity verification, and enable MFA
+- **API access:** Personal Apps provide read access to your own account and transaction data; payment/transfer permissions are disabled by default
+- **Not for commercial use:** The personal plan is for individuals accessing their own data only — see [Akahu's pricing page](https://www.akahu.nz/pricing) for business/developer plans
 
 ## License
 
