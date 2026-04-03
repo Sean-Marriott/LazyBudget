@@ -10,6 +10,7 @@ A personal finance tracking app built with Next.js 16, TypeScript, PostgreSQL, a
 - **Financial Goals** - Set and track progress toward your savings goals
 - **Transaction History** - View all your transactions with detailed filtering
 - **Account Grouping** - Accounts automatically categorized as assets, liabilities, or excluded
+- **Other Assets** - Manually track offline assets (cars, property, equipment) with emoji, value, and notes
 - **Client-Side Sync Control** - Manual sync button with cooldown enforcement
 
 ## Tech Stack
@@ -142,13 +143,14 @@ docker compose down     # Stop PostgreSQL
 | `app_settings` | Key/value store; holds `last_sync_at` |
 | `balance_snapshots` | One row per account per sync day — powers net worth history |
 | `sync_log` | History of sync runs |
+| `manual_assets` | User-managed offline assets with emoji, value, and notes |
 
 ## Pages
 
 | Route | Status |
 |---|---|
 | `/dashboard` | ✅ Net worth, accounts summary, recent transactions, month summary |
-| `/accounts` | ✅ All accounts grouped by asset/liability with balances |
+| `/accounts` | ✅ All accounts grouped by asset/liability with balances; Other Assets section for manual entries |
 | `/transactions` | ⏳ Under development |
 | `/budget` | ⏳ Under development |
 | `/insights` | ⏳ Under development |
