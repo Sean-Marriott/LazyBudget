@@ -3,6 +3,7 @@ import { accounts, balanceSnapshots } from "../db/schema";
 import { eq, desc } from "drizzle-orm";
 import { getAccountGroup } from "../utils/accounts";
 import { toNumber } from "../utils/currency";
+import { getAllManualAssets } from "./manual-assets";
 
 export type AccountWithGroup = typeof accounts.$inferSelect & {
   group: "asset" | "liability" | "excluded";
@@ -35,6 +36,11 @@ export async function getNetWorthSummary() {
       // Liabilities are typically negative balances (e.g. credit card debt)
       liabilities += Math.abs(Math.min(bal, 0));
     }
+  }
+
+  const manualAssetRows = await getAllManualAssets();
+  for (const m of manualAssetRows) {
+    assets += toNumber(m.value);
   }
 
   return {
