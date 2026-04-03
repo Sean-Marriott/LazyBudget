@@ -86,5 +86,5 @@ docker compose down     # Stop PostgreSQL
 | `/budget` | Stub |
 | `/insights` | Stub |
 | `/goals` | Stub |
-| `/cashflow` | Stub |
+| `/cashflow` | ✅ Income vs spending Sankey diagram with month selector |
 | `/net-worth` | Stub |

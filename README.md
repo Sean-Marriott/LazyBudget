@@ -153,7 +153,7 @@ docker compose down     # Stop PostgreSQL
 | `/budget` | ⏳ Under development |
 | `/insights` | ⏳ Under development |
 | `/goals` | ⏳ Under development |
-| `/cashflow` | ⏳ Under development |
+| `/cashflow` | ✅ Income vs spending Sankey diagram with month selector |
 | `/net-worth` | ⏳ Under development |
 
 ## Project Structure
