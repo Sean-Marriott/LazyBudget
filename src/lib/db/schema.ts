@@ -124,6 +124,19 @@ export const balanceSnapshots = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// Manual assets — user-entered offline assets (cars, computers, property, etc.)
+// ---------------------------------------------------------------------------
+export const manualAssets = pgTable("manual_assets", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  emoji: text("emoji"),
+  value: numeric("value", { precision: 12, scale: 2 }).notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
 // Sync log — history of sync runs for debugging
 // ---------------------------------------------------------------------------
 export const syncLog = pgTable("sync_log", {
