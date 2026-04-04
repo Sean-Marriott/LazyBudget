@@ -33,7 +33,7 @@ export function SpendingPieChart({ spending, height = 300 }: Props) {
           outerRadius={110}
           paddingAngle={2}
           label={({ value }) => formatCurrencyCompact(Number(value))}
-          labelLine={{ stroke: "#414868", strokeWidth: 1 }}
+          labelLine={{ stroke: "var(--border)", strokeWidth: 1 }}
         >
           {spending.map((entry) => (
             <Cell key={entry.category} fill={getCategoryColor(entry.category)} />
@@ -50,8 +50,8 @@ export function SpendingPieChart({ spending, height = 300 }: Props) {
                   role="img"
                   aria-label={`Total spending ${formatCurrency(total)}`}
                 >
-                  <tspan x={cx} dy="-1.75em" fill="#a9b1d6" fontSize={12}>Total</tspan>
-                  <tspan x={cx} dy="1.25em" fill="#c0caf5" fontSize={15} fontWeight={500}>
+                  <tspan x={cx} dy="-1.75em" fill="var(--muted-foreground)" fontSize={12}>Total</tspan>
+                  <tspan x={cx} dy="1.25em" fill="var(--foreground)" fontSize={15} fontWeight={500}>
                     {formatCurrency(total)}
                   </tspan>
                 </text>
@@ -62,11 +62,11 @@ export function SpendingPieChart({ spending, height = 300 }: Props) {
         <Tooltip
           formatter={(value) => [formatCurrency(Number(value)), ""]}
           contentStyle={{
-            backgroundColor: "#1a1b26",
-            border: "1px solid #2e3250",
+            backgroundColor: "var(--background)",
+            border: "1px solid var(--border)",
             borderRadius: "6px",
             fontSize: "12px",
-            color: "#c0caf5",
+            color: "var(--foreground)",
           }}
         />
         <Legend />

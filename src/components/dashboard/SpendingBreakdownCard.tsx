@@ -3,32 +3,28 @@ import { SpendingPieChart } from "@/components/charts/SpendingPieChart";
 import { getMonthlySpendingByCategory } from "@/lib/queries/transactions";
 
 export async function SpendingBreakdownCard() {
+  let spending: Awaited<ReturnType<typeof getMonthlySpendingByCategory>> | null = null;
+
   try {
-    const spending = await getMonthlySpendingByCategory(new Date());
-    return (
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Spending this month
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <SpendingPieChart spending={spending} />
-        </CardContent>
-      </Card>
-    );
-  } catch {
-    return (
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Spending this month
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <p className="text-sm text-muted-foreground">Unable to load spending data.</p>
-        </CardContent>
-      </Card>
-    );
+    spending = await getMonthlySpendingByCategory(new Date());
+  } catch (error) {
+    console.error("Failed to load monthly spending breakdown.", error);
   }
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">
+          Spending this month
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0">
+        {spending !== null ? (
+          <SpendingPieChart spending={spending} />
+        ) : (
+          <p className="text-sm text-muted-foreground">Unable to load spending data.</p>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
