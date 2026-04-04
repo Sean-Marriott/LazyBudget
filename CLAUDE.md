@@ -11,6 +11,9 @@ npm run dev          # Start dev server at localhost:3000
 npm run build        # Production build (also validates types)
 npx tsc --noEmit     # Type check only
 
+npm test             # Run all tests once (vitest run)
+npm run test:watch   # Run tests in watch mode (vitest)
+
 npm run db:push      # Push schema to DB (use during development)
 npm run db:generate  # Generate migration files
 npm run db:migrate   # Run migrations
@@ -69,6 +72,33 @@ docker compose down     # Stop PostgreSQL
 **Category resolution order:** `userCategory` → `akahuCategory` → `'Uncategorised'`. Mirror this with `coalesce(userCategory, akahuCategory, 'Uncategorised')` in queries.
 
 **No ESLint configured** — `npx tsc --noEmit` and `npm run build` are the only code quality gates.
+
+## Automated tests
+
+**Framework:** Vitest · `@testing-library/jest-dom` (jsdom environment, globals enabled)
+
+**Run tests:**
+```bash
+npm test             # single run
+npm run test:watch   # watch mode
+```
+
+**Config:** [`vitest.config.ts`](vitest.config.ts) — includes `src/**/*.test.{ts,tsx}`, jsdom environment, setup file at `src/test/setup.ts`.
+
+**Existing test files:**
+
+| File | What it covers |
+|---|---|
+| `src/app/api/rules/route.test.ts` | POST `/api/rules` — validation and creation |
+| `src/app/api/rules/[id]/route.test.ts` | PATCH/DELETE `/api/rules/[id]` — id validation, field validation, update logic, deletion |
+| `src/app/api/transactions/[id]/route.test.ts` | PATCH `/api/transactions/[id]` |
+| `src/lib/queries/rules.test.ts` | `applyRulesToTransactions` — matching, AND/OR combinators, first-match-wins |
+| `src/lib/queries/transactions.test.ts` | Query helpers for transactions |
+
+**Conventions:**
+- DB and external dependencies are mocked with `vi.hoisted(() => vi.fn())` — no real DB needed.
+- Route handler tests construct `Request` objects directly and call the exported handler functions (e.g. `PATCH`, `DELETE`).
+- `params` are passed as `{ params: Promise.resolve({ id }) }` to match the Next.js 16 async params signature.
 
 ## Database schema overview
 

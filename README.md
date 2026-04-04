@@ -88,6 +88,9 @@ npm run dev          # Start dev server at localhost:3000
 npm run build        # Production build (also validates types)
 npx tsc --noEmit     # Type check only
 
+npm test             # Run all tests once (vitest run)
+npm run test:watch   # Run tests in watch mode (vitest)
+
 npm run db:push      # Push schema to DB (use during development)
 npm run db:generate  # Generate migration files
 npm run db:migrate   # Run migrations
@@ -96,6 +99,20 @@ npm run db:studio    # Open Drizzle Studio (DB GUI)
 docker compose up -d    # Start PostgreSQL
 docker compose down     # Stop PostgreSQL
 ```
+
+## Automated Tests
+
+**Framework:** [Vitest](https://vitest.dev) with `@testing-library/jest-dom` (jsdom environment).
+
+Tests live alongside the code they cover as `*.test.ts` files under `src/`. No real database is required — all DB and external dependencies are mocked via `vi.hoisted(() => vi.fn())`. Route handler tests construct `Request` objects directly and call the exported handler functions, matching Next.js 16's async params signature (`{ params: Promise<{ id: string }> }`).
+
+| Test file | What it covers |
+|---|---|
+| `src/app/api/rules/route.test.ts` | POST `/api/rules` — body validation and rule creation |
+| `src/app/api/rules/[id]/route.test.ts` | PATCH/DELETE `/api/rules/[id]` — id validation, field validation, update logic, deletion |
+| `src/app/api/transactions/[id]/route.test.ts` | PATCH `/api/transactions/[id]` — transaction update validation |
+| `src/lib/queries/rules.test.ts` | `applyRulesToTransactions` — condition matching, AND/OR combinators, first-match-wins behaviour |
+| `src/lib/queries/transactions.test.ts` | Transaction query helpers |
 
 ## Architecture
 
