@@ -3,21 +3,25 @@ export const dynamic = "force-dynamic";
 import { TopBar } from "@/components/layout/TopBar";
 import { AccountCard } from "@/components/accounts/AccountCard";
 import { OtherAssetsSection } from "@/components/accounts/OtherAssetsSection";
+import { ManualAccountsSection } from "@/components/accounts/ManualAccountsSection";
 import { getAllAccounts, getNetWorthSummary } from "@/lib/queries/accounts";
 import { getAllManualAssets } from "@/lib/queries/manual-assets";
+import { getAllManualAccounts } from "@/lib/queries/manual-accounts";
 import { formatCurrency } from "@/lib/utils/currency";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default async function AccountsPage() {
   let accounts: Awaited<ReturnType<typeof getAllAccounts>> = [];
   let manualAssets: Awaited<ReturnType<typeof getAllManualAssets>> = [];
+  let manualAccounts: Awaited<ReturnType<typeof getAllManualAccounts>> = [];
   let summary = { assets: 0, liabilities: 0, netWorth: 0 };
   let dbError = false;
 
   try {
-    [accounts, manualAssets, summary] = await Promise.all([
+    [accounts, manualAssets, manualAccounts, summary] = await Promise.all([
       getAllAccounts(),
       getAllManualAssets(),
+      getAllManualAccounts(),
       getNetWorthSummary(),
     ]);
   } catch {
@@ -73,6 +77,8 @@ export default async function AccountsPage() {
                 <p className="text-sm text-muted-foreground">Click <strong>Sync</strong> to pull your accounts from Akahu.</p>
               </div>
             )}
+
+            <ManualAccountsSection accounts={manualAccounts} />
 
             <OtherAssetsSection assets={manualAssets} />
 
