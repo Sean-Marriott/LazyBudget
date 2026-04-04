@@ -4,6 +4,7 @@ import { eq, desc } from "drizzle-orm";
 import { getAccountGroup } from "../utils/accounts";
 import { toNumber } from "../utils/currency";
 import { getAllManualAssets } from "@/lib/queries/manual-assets";
+import { getAllManualAccounts } from "@/lib/queries/manual-accounts";
 
 export type AccountWithGroup = typeof accounts.$inferSelect & {
   group: "asset" | "liability" | "excluded";
@@ -41,6 +42,16 @@ export async function getNetWorthSummary() {
   const manualAssetRows = await getAllManualAssets();
   for (const m of manualAssetRows) {
     assets += toNumber(m.value);
+  }
+
+  const manualAccountRows = await getAllManualAccounts();
+  for (const acc of manualAccountRows) {
+    const bal = toNumber(acc.balance);
+    if (acc.group === "asset") {
+      assets += bal;
+    } else if (acc.group === "liability") {
+      liabilities += Math.abs(Math.min(bal, 0));
+    }
   }
 
   return {

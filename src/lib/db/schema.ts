@@ -137,6 +137,20 @@ export const manualAssets = pgTable("manual_assets", {
 });
 
 // ---------------------------------------------------------------------------
+// Manual accounts — user-entered accounts not connected to Akahu
+// ---------------------------------------------------------------------------
+export const manualAccounts = pgTable("manual_accounts", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  type: text("type").notNull(), // CHECKING | SAVINGS | CREDITCARD | LOAN | KIWISAVER
+  //                              | INVESTMENT | TERMDEPOSIT | FOREIGN | WALLET
+  balance: numeric("balance", { precision: 12, scale: 2 }).notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
 // Sync log — history of sync runs for debugging
 // ---------------------------------------------------------------------------
 export const syncLog = pgTable("sync_log", {

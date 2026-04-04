@@ -11,6 +11,7 @@ A personal finance tracking app built with Next.js 16, TypeScript, PostgreSQL, a
 - **Transaction History** - View all your transactions with detailed filtering
 - **Account Grouping** - Accounts automatically categorized as assets, liabilities, or excluded
 - **Other Assets** - Manually track offline assets (cars, property, equipment) with emoji, value, and notes
+- **Manual Accounts** - Track accounts at banks not connected to Akahu (foreign banks, cash, etc.)
 - **Client-Side Sync Control** - Manual sync button with cooldown enforcement
 
 ## Tech Stack
@@ -144,13 +145,14 @@ docker compose down     # Stop PostgreSQL
 | `balance_snapshots` | One row per account per sync day — powers net worth history |
 | `sync_log` | History of sync runs |
 | `manual_assets` | User-managed offline assets with emoji, value, and notes |
+| `manual_accounts` | User-managed accounts not connected to Akahu (foreign banks, cash, etc.) |
 
 ## Pages
 
 | Route | Status |
 |---|---|
 | `/dashboard` | ✅ Net worth, accounts summary, recent transactions, month summary |
-| `/accounts` | ✅ All accounts grouped by asset/liability with balances; Other Assets section for manual entries |
+| `/accounts` | ✅ All accounts grouped by asset/liability with balances; Manual Accounts and Other Assets sections for manual entries |
 | `/transactions` | ⏳ Under development |
 | `/budget` | ⏳ Under development |
 | `/insights` | ⏳ Under development |

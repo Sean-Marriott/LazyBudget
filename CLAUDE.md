@@ -54,6 +54,8 @@ docker compose down     # Stop PostgreSQL
 
 **Other Assets (manual assets):** `src/lib/queries/manual-assets.ts` provides CRUD for the `manual_assets` table. These are fully separate from Akahu sync — no risk of overwrites. `getNetWorthSummary()` in `src/lib/queries/accounts.ts` sums their values into the assets total. The `/accounts` page renders them via `OtherAssetsSection` (client component wrapper), `ManualAssetCard`, and `ManualAssetDialog`.
 
+**Manual Accounts:** `src/lib/queries/manual-accounts.ts` provides CRUD for the `manual_accounts` table — for accounts at banks not connected to Akahu. Supports the same account types as Akahu (CHECKING, SAVINGS, CREDITCARD, LOAN, etc., excluding TAX and REWARDS). `getAccountGroup()` determines asset/liability classification; `getNetWorthSummary()` includes them accordingly. The `/accounts` page renders them via `ManualAccountsSection`, `ManualAccountCard`, and `ManualAccountDialog`.
+
 **shadcn/ui components** live in `src/components/ui/` — add new ones with `npx shadcn@latest add <component>`.
 
 **Path alias:** `@/*` maps to `src/*` — use this everywhere instead of relative imports.
@@ -78,13 +80,14 @@ docker compose down     # Stop PostgreSQL
 | `balance_snapshots` | One row per account per sync day — powers net worth history |
 | `sync_log` | History of sync runs |
 | `manual_assets` | User-managed offline assets (cars, property, etc.) with emoji, value, and notes |
+| `manual_accounts` | User-managed accounts not connected to Akahu (foreign banks, cash, etc.) |
 
 ## Pages built
 
 | Route | Status |
 |---|---|
 | `/dashboard` | ✅ Net worth, accounts summary, recent transactions, month summary |
-| `/accounts` | ✅ All accounts grouped by asset/liability with balances; Other Assets section for manual entries |
+| `/accounts` | ✅ All accounts grouped by asset/liability with balances; Manual Accounts and Other Assets sections for manual entries |
 | `/transactions` | Stub |
 | `/budget` | Stub |
 | `/insights` | Stub |
