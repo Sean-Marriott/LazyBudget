@@ -17,7 +17,7 @@ export async function PATCH(
     return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
   }
 
-  if (typeof body !== "object" || body === null) {
+  if (Array.isArray(body) || typeof body !== "object" || body === null) {
     return NextResponse.json({ error: "invalid request body" }, { status: 400 });
   }
 
@@ -55,6 +55,10 @@ export async function PATCH(
   if (notes !== undefined) data.notes = (notes as string | null) || null;
   if (isTransfer !== undefined) data.isTransfer = isTransfer as boolean;
   if (isHidden !== undefined) data.isHidden = isHidden as boolean;
+
+  if (Object.keys(data).length === 0) {
+    return NextResponse.json({ error: "no valid fields provided" }, { status: 400 });
+  }
 
   await updateTransaction(id.trim(), data);
   return NextResponse.json({ ok: true });
