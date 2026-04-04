@@ -1,6 +1,6 @@
 import { db } from "../db";
 import { transactions, accounts } from "../db/schema";
-import { eq, desc, and, gte, lte, sql, not, isNull } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sql, or, ilike } from "drizzle-orm";
 import { startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { toNumber } from "../utils/currency";
 
@@ -60,6 +60,69 @@ export async function getMonthlySpendingByCategory(month: Date) {
     total: Math.abs(toNumber(r.total)),
     count: Number(r.count),
   }));
+}
+
+export async function getTransactions(opts: {
+  monthStart: Date;
+  monthEnd: Date;
+  category?: string;
+  search?: string;
+}) {
+  const { monthStart, monthEnd, category, search } = opts;
+
+  const conditions = [
+    gte(transactions.date, monthStart),
+    lte(transactions.date, monthEnd),
+    eq(transactions.isHidden, false),
+  ];
+
+  if (category) {
+    conditions.push(
+      sql`COALESCE(${transactions.userCategory}, ${transactions.akahuCategoryGroup}, 'Uncategorised') = ${category}`
+    );
+  }
+
+  if (search) {
+    conditions.push(
+      or(
+        ilike(transactions.description, `%${search}%`),
+        ilike(transactions.merchantName, `%${search}%`)
+      )!
+    );
+  }
+
+  return db
+    .select({
+      id: transactions.id,
+      date: transactions.date,
+      description: transactions.description,
+      amount: transactions.amount,
+      type: transactions.type,
+      accountId: transactions.accountId,
+      accountName: accounts.name,
+      merchantName: transactions.merchantName,
+      akahuCategoryGroup: transactions.akahuCategoryGroup,
+      userCategory: transactions.userCategory,
+      notes: transactions.notes,
+      isTransfer: transactions.isTransfer,
+      isHidden: transactions.isHidden,
+    })
+    .from(transactions)
+    .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+    .where(and(...conditions))
+    .orderBy(desc(transactions.date));
+}
+
+export async function updateTransaction(
+  id: string,
+  data: {
+    userCategory?: string | null;
+    notes?: string | null;
+    isTransfer?: boolean;
+    isHidden?: boolean;
+  }
+): Promise<void> {
+  await db.update(transactions).set(data).where(eq(transactions.id, id));
 }
 
 export async function getMonthSummary(month: Date) {
