@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+const mockGetRuleById = vi.hoisted(() => vi.fn());
 const mockUpdateRule = vi.hoisted(() => vi.fn());
 const mockDeleteRule = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/queries/rules", () => ({
+  getRuleById: mockGetRuleById,
   updateRule: mockUpdateRule,
   deleteRule: mockDeleteRule,
 }));
@@ -50,8 +52,11 @@ const UPDATED_RULE = {
 };
 
 beforeEach(() => {
+  mockGetRuleById.mockReset();
   mockUpdateRule.mockReset();
   mockDeleteRule.mockReset();
+  // By default, the rule exists and has an action (setCategory)
+  mockGetRuleById.mockResolvedValue(UPDATED_RULE);
   mockUpdateRule.mockResolvedValue(UPDATED_RULE);
   mockDeleteRule.mockResolvedValue(undefined);
 });
@@ -103,12 +108,13 @@ describe("PATCH /api/rules/[id] — body parsing", () => {
     expect((await res.json()).error).toBe("invalid request body");
   });
 
-  it("accepts an array body without error (no recognised fields → no-op update)", async () => {
+  it("accepts an array body without error (no recognised fields → empty patch, existing actions preserved)", async () => {
     // Arrays are objects in JS, so the route doesn't reject them at the body
-    // check; all fields resolve to undefined, resulting in an empty update.
+    // check; all fields resolve to undefined resulting in an empty data object.
+    // The existing rule (returned by getRuleById) still has actions so hasAction
+    // is true and updateRule is called with an empty patch.
     const res = await PATCH(makeRequest([{ name: "x" }]), makeParams("1"));
-    // The handler proceeds and calls updateRule with an empty patch object.
-    expect([200, 404]).toContain(res.status);
+    expect(res.status).toBe(200);
   });
 });
 
@@ -202,7 +208,7 @@ describe("PATCH /api/rules/[id] — field validation", () => {
 
 describe("PATCH /api/rules/[id] — not found", () => {
   it("returns 404 when the rule does not exist", async () => {
-    mockUpdateRule.mockResolvedValueOnce(null);
+    mockGetRuleById.mockResolvedValueOnce(null);
     const res = await PATCH(makeRequest({ name: "New Name" }), makeParams("99"));
     expect(res.status).toBe(404);
     expect((await res.json()).error).toBe("not found");
@@ -258,9 +264,25 @@ describe("PATCH /api/rules/[id] — successful update", () => {
     expect(mockUpdateRule).toHaveBeenCalledWith(1, expect.objectContaining({ setNotes: null }));
   });
 
-  it("passes null setCategory through", async () => {
+  it("passes null setCategory through when another action remains", async () => {
+    // Existing rule has setNotes set, so clearing setCategory still leaves an action
+    mockGetRuleById.mockResolvedValueOnce({ ...UPDATED_RULE, setNotes: "auto-tagged" });
     await PATCH(makeRequest({ setCategory: null }), makeParams("1"));
     expect(mockUpdateRule).toHaveBeenCalledWith(1, expect.objectContaining({ setCategory: null }));
+  });
+
+  it("returns 400 when patch would clear the last remaining action", async () => {
+    // Existing rule has only setCategory; clearing it leaves no action
+    mockGetRuleById.mockResolvedValueOnce({
+      ...UPDATED_RULE,
+      setCategory: "Eating Out",
+      setNotes: null,
+      setTransfer: null,
+      setHidden: null,
+    });
+    const res = await PATCH(makeRequest({ setCategory: null }), makeParams("1"));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/action/);
   });
 
   it("passes conditionCombinator 'OR' correctly", async () => {

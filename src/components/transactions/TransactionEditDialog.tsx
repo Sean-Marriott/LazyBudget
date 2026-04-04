@@ -55,7 +55,7 @@ export function TransactionEditDialog({
       setStep("edit");
       setRulePrefill(null);
     }
-  }, [open, transaction]);
+  }, [open, transaction.id]);
 
   async function handleSubmit(e: React.BaseSyntheticEvent) {
     e.preventDefault();

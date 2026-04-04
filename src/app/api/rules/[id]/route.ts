@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { updateRule, deleteRule } from "@/lib/queries/rules";
+import { getRuleById, updateRule, deleteRule } from "@/lib/queries/rules";
 import { RULE_CONDITION_FIELDS, RULE_CONDITION_OPERATORS, RULE_CONDITION_COMBINATORS } from "@/lib/utils/rules";
 import { EXPENSE_CATEGORIES } from "@/lib/utils/categories";
 import type { RuleCondition } from "@/lib/utils/rules";
@@ -75,6 +75,11 @@ export async function PATCH(
     return NextResponse.json({ error: "setHidden must be a boolean" }, { status: 400 });
   }
 
+  const existing = await getRuleById(numId);
+  if (!existing) {
+    return NextResponse.json({ error: "not found" }, { status: 404 });
+  }
+
   const data: Record<string, unknown> = {};
   if (name !== undefined) data.name = (name as string).trim();
   if (enabled !== undefined) data.enabled = enabled;
@@ -86,6 +91,23 @@ export async function PATCH(
   if (setNotes !== undefined) data.setNotes = typeof setNotes === "string" ? setNotes.trim() || null : null;
   if (setTransfer !== undefined) data.setTransfer = setTransfer;
   if (setHidden !== undefined) data.setHidden = setHidden;
+
+  // Validate that the merged rule still performs at least one action
+  const mergedCategory = "setCategory" in data ? data.setCategory : existing.setCategory;
+  const mergedNotes = "setNotes" in data ? data.setNotes : existing.setNotes;
+  const mergedTransfer = "setTransfer" in data ? data.setTransfer : existing.setTransfer;
+  const mergedHidden = "setHidden" in data ? data.setHidden : existing.setHidden;
+  const hasAction =
+    (mergedCategory !== null && mergedCategory !== undefined) ||
+    (mergedNotes !== null && mergedNotes !== undefined) ||
+    (mergedTransfer !== null && mergedTransfer !== undefined) ||
+    (mergedHidden !== null && mergedHidden !== undefined);
+  if (!hasAction) {
+    return NextResponse.json(
+      { error: "at least one action (setCategory, setNotes, setTransfer, setHidden) is required" },
+      { status: 400 }
+    );
+  }
 
   const rule = await updateRule(numId, data);
   if (!rule) {

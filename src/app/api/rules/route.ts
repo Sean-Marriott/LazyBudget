@@ -68,9 +68,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "setHidden must be a boolean" }, { status: 400 });
   }
 
+  // Normalize setNotes: trim whitespace and coerce empty to null before action check
+  const normalizedNotes = typeof setNotes === "string" ? setNotes.trim() || null : null;
+
   const hasAction =
     (setCategory !== undefined && setCategory !== null) ||
-    (setNotes !== undefined && setNotes !== null) ||
+    (normalizedNotes !== null) ||
     (setTransfer !== undefined && setTransfer !== null) ||
     (setHidden !== undefined && setHidden !== null);
 
@@ -83,7 +86,7 @@ export async function POST(request: Request) {
     conditionCombinator: (conditionCombinator as string | undefined) ?? "AND",
     conditions: (conditions as RuleCondition[]).map((c) => ({ ...c, value: c.value.trim() })),
     setCategory: setCategory as string | null | undefined,
-    setNotes: typeof setNotes === "string" ? setNotes.trim() || null : null,
+    setNotes: normalizedNotes,
     setTransfer: setTransfer as boolean | null | undefined,
     setHidden: setHidden as boolean | null | undefined,
   });

@@ -42,6 +42,14 @@ export async function deleteRule(id: number): Promise<void> {
   await db.delete(transactionRules).where(eq(transactionRules.id, id));
 }
 
+export async function getRuleById(id: number): Promise<TransactionRule | null> {
+  const [rule] = await db
+    .select()
+    .from(transactionRules)
+    .where(eq(transactionRules.id, id));
+  return rule ?? null;
+}
+
 function matchesCondition(
   tx: { description: string; merchantName: string | null },
   condition: RuleCondition
@@ -87,6 +95,7 @@ export async function applyRulesToTransactions(): Promise<number> {
       id: transactions.id,
       description: transactions.description,
       merchantName: transactions.merchantName,
+      notes: transactions.notes,
     })
     .from(transactions)
     .where(isNull(transactions.userCategory));
@@ -106,7 +115,7 @@ export async function applyRulesToTransactions(): Promise<number> {
         if (rule.setCategory !== null && rule.setCategory !== undefined) {
           update.userCategory = rule.setCategory;
         }
-        if (rule.setNotes !== null && rule.setNotes !== undefined) {
+        if (rule.setNotes !== null && rule.setNotes !== undefined && tx.notes == null) {
           update.notes = rule.setNotes;
         }
         if (rule.setTransfer !== null && rule.setTransfer !== undefined) {

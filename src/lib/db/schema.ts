@@ -9,7 +9,7 @@ import {
   uniqueIndex,
   jsonb,
 } from "drizzle-orm/pg-core";
-import type { RuleCondition } from "../utils/rules";
+import type { RuleCondition } from "@/lib/utils/rules";
 
 // ---------------------------------------------------------------------------
 // Accounts — synced from Akahu

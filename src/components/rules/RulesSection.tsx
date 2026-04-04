@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { RuleCard } from "./RuleCard";
-import { RuleDialog } from "./RuleDialog";
+import { RuleCard } from "@/components/rules/RuleCard";
+import { RuleDialog } from "@/components/rules/RuleDialog";
 import type { TransactionRule } from "@/lib/queries/rules";
 
 interface RulesSectionProps {
@@ -23,7 +23,8 @@ export function RulesSection({ rules }: RulesSectionProps) {
       const res = await fetch("/api/rules/apply", { method: "POST" });
       if (res.ok) {
         const data = await res.json();
-        setApplyResult(data.applied as number);
+        const applied = typeof data?.applied === "number" ? data.applied : 0;
+        setApplyResult(applied);
       } else {
         window.alert("Failed to apply rules. Please try again.");
       }

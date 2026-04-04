@@ -5,7 +5,7 @@ import { db } from "../db";
 import { accounts, transactions, appSettings, balanceSnapshots, syncLog } from "../db/schema";
 import { eq, sql } from "drizzle-orm";
 import { mapAkahuCategoryToGroup } from "../utils/categories";
-import { applyRulesToTransactions } from "../queries/rules";
+import { applyRulesToTransactions } from "@/lib/queries/rules";
 
 function isEnriched(tx: Transaction): tx is EnrichedTransaction {
   return "merchant" in tx || "category" in tx;
@@ -179,7 +179,12 @@ export async function runSync(mode: "incremental" | "full" = "incremental"): Pro
     } while (cursor);
 
     // -------------------------------------------------------------------
-    // Update last_sync_at
+    // Apply transaction rules to newly synced (uncategorised) transactions
+    // -------------------------------------------------------------------
+    await applyRulesToTransactions();
+
+    // -------------------------------------------------------------------
+    // Update last_sync_at (after successful rule application)
     // -------------------------------------------------------------------
     const now = new Date().toISOString();
     await db
@@ -189,11 +194,6 @@ export async function runSync(mode: "incremental" | "full" = "incremental"): Pro
         target: appSettings.key,
         set: { value: now, updatedAt: sql`now()` },
       });
-
-    // -------------------------------------------------------------------
-    // Apply transaction rules to newly synced (uncategorised) transactions
-    // -------------------------------------------------------------------
-    await applyRulesToTransactions();
 
     const durationMs = Date.now() - startedAt.getTime();
 
