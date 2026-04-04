@@ -7,7 +7,9 @@ import {
   date,
   timestamp,
   uniqueIndex,
+  jsonb,
 } from "drizzle-orm/pg-core";
+import type { RuleCondition } from "@/lib/utils/rules";
 
 // ---------------------------------------------------------------------------
 // Accounts — synced from Akahu
@@ -148,6 +150,24 @@ export const manualAccounts = pgTable("manual_accounts", {
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
+// Transaction rules — auto-categorise transactions on sync
+// ---------------------------------------------------------------------------
+export const transactionRules = pgTable("transaction_rules", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  enabled: boolean("enabled").default(true).notNull(),
+  // Conditions
+  conditionCombinator: text("condition_combinator").default("AND").notNull(), // "AND" | "OR"
+  conditions: jsonb("conditions").$type<RuleCondition[]>().default([]).notNull(),
+  // Actions — null means "don't change this field"
+  setCategory: text("set_category"),
+  setNotes: text("set_notes"),
+  setTransfer: boolean("set_transfer"),
+  setHidden: boolean("set_hidden"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
 // ---------------------------------------------------------------------------

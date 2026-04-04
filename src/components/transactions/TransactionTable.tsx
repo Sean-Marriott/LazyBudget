@@ -13,7 +13,9 @@ import { formatCurrency, toNumber } from "@/lib/utils/currency";
 import { formatDateShort } from "@/lib/utils/dates";
 import { getCategoryColor, getCategoryLabel } from "@/lib/utils/categories";
 import { TransactionEditDialog } from "./TransactionEditDialog";
+import { RuleDialog } from "@/components/rules/RuleDialog";
 import type { getTransactions } from "@/lib/queries/transactions";
+import type { RulePrefill } from "@/lib/utils/rules";
 
 type TransactionRow = Awaited<ReturnType<typeof getTransactions>>[number];
 
@@ -23,6 +25,13 @@ interface TransactionTableProps {
 
 export function TransactionTable({ transactions }: TransactionTableProps) {
   const [selectedTx, setSelectedTx] = useState<TransactionRow | null>(null);
+  const [rulePrefill, setRulePrefill] = useState<RulePrefill | null>(null);
+  const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
+
+  function handleCreateRule(prefill: RulePrefill) {
+    setRulePrefill(prefill);
+    setRuleDialogOpen(true);
+  }
 
   if (transactions.length === 0) {
     return (
@@ -104,8 +113,18 @@ export function TransactionTable({ transactions }: TransactionTableProps) {
           onOpenChange={(open) => {
             if (!open) setSelectedTx(null);
           }}
+          onCreateRule={handleCreateRule}
         />
       )}
+
+      <RuleDialog
+        open={ruleDialogOpen}
+        onOpenChange={(open) => {
+          setRuleDialogOpen(open);
+          if (!open) setRulePrefill(null);
+        }}
+        initialValues={rulePrefill ?? undefined}
+      />
     </>
   );
 }

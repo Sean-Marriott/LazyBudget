@@ -42,7 +42,7 @@ docker compose down     # Stop PostgreSQL
 - `src/lib/db/schema.ts` — single source of truth for all table definitions; TypeScript types are inferred from here
 - `src/lib/akahu/` — `client.ts` (lazy AkahuClient), `sync.ts` (full sync logic)
 - `src/lib/queries/` — reusable DB query functions used by API routes and pages
-- `src/lib/utils/` — `currency.ts` (NZD formatting), `dates.ts`, `accounts.ts` (type→group mapping), `categories.ts` (NZFCC colors)
+- `src/lib/utils/` — `currency.ts` (NZD formatting), `dates.ts`, `accounts.ts` (type→group mapping), `categories.ts` (NZFCC colors), `rules.ts` (rule condition types/labels)
 - `src/components/` — UI components grouped by page (dashboard/, accounts/, layout/)
 - `src/app/api/` — Route handlers (thin wrappers around query functions)
 
@@ -55,6 +55,8 @@ docker compose down     # Stop PostgreSQL
 **Other Assets (manual assets):** `src/lib/queries/manual-assets.ts` provides CRUD for the `manual_assets` table. These are fully separate from Akahu sync — no risk of overwrites. `getNetWorthSummary()` in `src/lib/queries/accounts.ts` sums their values into the assets total. The `/accounts` page renders them via `OtherAssetsSection` (client component wrapper), `ManualAssetCard`, and `ManualAssetDialog`.
 
 **Manual Accounts:** `src/lib/queries/manual-accounts.ts` provides CRUD for the `manual_accounts` table — for accounts at banks not connected to Akahu. Supports the same account types as Akahu (CHECKING, SAVINGS, CREDITCARD, LOAN, etc., excluding TAX and REWARDS). `getAccountGroup()` determines asset/liability classification; `getNetWorthSummary()` includes them accordingly. The `/accounts` page renders them via `ManualAccountsSection`, `ManualAccountCard`, and `ManualAccountDialog`.
+
+**Transaction rules:** `src/lib/queries/rules.ts` provides CRUD and `applyRulesToTransactions()`. Rules store conditions as a JSONB array (`conditions: RuleCondition[]`) with a `conditionCombinator` ("AND" | "OR"). `applyRulesToTransactions()` only targets transactions where `userCategory IS NULL` — never overwrites manual edits. Rules are evaluated in creation order (id ASC); first match wins. Called automatically at the end of every sync. The `/rules` page renders them via `RulesSection`, `RuleCard`, and `RuleDialog`.
 
 **shadcn/ui components** live in `src/components/ui/` — add new ones with `npx shadcn@latest add <component>`.
 
@@ -81,6 +83,7 @@ docker compose down     # Stop PostgreSQL
 | `sync_log` | History of sync runs |
 | `manual_assets` | User-managed offline assets (cars, property, etc.) with emoji, value, and notes |
 | `manual_accounts` | User-managed accounts not connected to Akahu (foreign banks, cash, etc.) |
+| `transaction_rules` | Auto-categorisation rules; `conditions` is JSONB array of `{field, operator, value}`; `conditionCombinator` is "AND" \| "OR" |
 
 ## Pages built
 
@@ -88,7 +91,8 @@ docker compose down     # Stop PostgreSQL
 |---|---|
 | `/dashboard` | ✅ Net worth, accounts summary, recent transactions, month summary |
 | `/accounts` | ✅ All accounts grouped by asset/liability with balances; Manual Accounts and Other Assets sections for manual entries |
-| `/transactions` | Stub |
+| `/transactions` | ✅ Transaction browser with month/category/search filters; click row to edit |
+| `/rules` | ✅ Transaction rules with AND/OR multi-condition support; auto-applies on sync |
 | `/budget` | Stub |
 | `/insights` | Stub |
 | `/goals` | Stub |
