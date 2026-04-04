@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getRuleById, updateRule, deleteRule } from "@/lib/queries/rules";
+import type { RuleInput } from "@/lib/queries/rules";
 import { RULE_CONDITION_FIELDS, RULE_CONDITION_OPERATORS, RULE_CONDITION_COMBINATORS } from "@/lib/utils/rules";
 import { EXPENSE_CATEGORIES } from "@/lib/utils/categories";
 import type { RuleCondition } from "@/lib/utils/rules";
@@ -80,17 +81,17 @@ export async function PATCH(
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 
-  const data: Record<string, unknown> = {};
+  const data: Partial<RuleInput> = {};
   if (name !== undefined) data.name = (name as string).trim();
-  if (enabled !== undefined) data.enabled = enabled;
-  if (conditionCombinator !== undefined) data.conditionCombinator = conditionCombinator;
+  if (enabled !== undefined) data.enabled = enabled as boolean;
+  if (conditionCombinator !== undefined) data.conditionCombinator = conditionCombinator as string;
   if (conditions !== undefined) {
     data.conditions = (conditions as RuleCondition[]).map((c) => ({ ...c, value: c.value.trim() }));
   }
-  if (setCategory !== undefined) data.setCategory = setCategory;
+  if (setCategory !== undefined) data.setCategory = setCategory as string | null;
   if (setNotes !== undefined) data.setNotes = typeof setNotes === "string" ? setNotes.trim() || null : null;
-  if (setTransfer !== undefined) data.setTransfer = setTransfer;
-  if (setHidden !== undefined) data.setHidden = setHidden;
+  if (setTransfer !== undefined) data.setTransfer = setTransfer as boolean | null;
+  if (setHidden !== undefined) data.setHidden = setHidden as boolean | null;
 
   // Validate that the merged rule still performs at least one action
   const mergedCategory = "setCategory" in data ? data.setCategory : existing.setCategory;
