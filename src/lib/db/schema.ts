@@ -7,7 +7,9 @@ import {
   date,
   timestamp,
   uniqueIndex,
+  jsonb,
 } from "drizzle-orm/pg-core";
+import type { RuleCondition } from "../utils/rules";
 
 // ---------------------------------------------------------------------------
 // Accounts — synced from Akahu
@@ -157,10 +159,9 @@ export const transactionRules = pgTable("transaction_rules", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   enabled: boolean("enabled").default(true).notNull(),
-  // Condition
-  conditionField: text("condition_field").notNull(),       // "description" | "merchantName"
-  conditionOperator: text("condition_operator").notNull(), // "contains" | "equals" | "starts_with"
-  conditionValue: text("condition_value").notNull(),
+  // Conditions
+  conditionCombinator: text("condition_combinator").default("AND").notNull(), // "AND" | "OR"
+  conditions: jsonb("conditions").$type<RuleCondition[]>().default([]).notNull(),
   // Actions — null means "don't change this field"
   setCategory: text("set_category"),
   setNotes: text("set_notes"),

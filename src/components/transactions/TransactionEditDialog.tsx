@@ -57,7 +57,7 @@ export function TransactionEditDialog({
     }
   }, [open, transaction]);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.BaseSyntheticEvent) {
     e.preventDefault();
     setError(null);
     setSaving(true);
@@ -103,8 +103,7 @@ export function TransactionEditDialog({
 
         const prefill: RulePrefill = {
           name: suggestedName.slice(0, 80),
-          conditionField,
-          conditionValue,
+          conditions: [{ field: conditionField, operator: "contains", value: conditionValue }],
           setCategory: category || undefined,
           setNotes: notes.trim() || undefined,
           setTransfer: isTransfer || undefined,
@@ -218,11 +217,11 @@ export function TransactionEditDialog({
                 <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm space-y-1">
                   <p className="text-muted-foreground">
                     <span className="font-medium text-foreground">
-                      {RULE_CONDITION_FIELD_LABELS[rulePrefill.conditionField]}
+                      {RULE_CONDITION_FIELD_LABELS[rulePrefill.conditions[0].field]}
                     </span>{" "}
-                    {RULE_CONDITION_OPERATOR_LABELS["contains"]}{" "}
+                    {RULE_CONDITION_OPERATOR_LABELS[rulePrefill.conditions[0].operator]}{" "}
                     <span className="font-mono bg-muted px-1 rounded">
-                      {rulePrefill.conditionValue}
+                      {rulePrefill.conditions[0].value}
                     </span>
                   </p>
                   <p className="text-muted-foreground">

@@ -1,7 +1,13 @@
+export type RuleCondition = {
+  field: "description" | "merchantName";
+  operator: "contains" | "equals" | "starts_with";
+  value: string;
+};
+
 export interface RulePrefill {
   name: string;
-  conditionField: "description" | "merchantName";
-  conditionValue: string;
+  conditionCombinator?: "AND" | "OR";
+  conditions: RuleCondition[];
   setCategory?: string;
   setNotes?: string;
   setTransfer?: boolean;
@@ -13,6 +19,9 @@ export type RuleConditionField = (typeof RULE_CONDITION_FIELDS)[number];
 
 export const RULE_CONDITION_OPERATORS = ["contains", "equals", "starts_with"] as const;
 export type RuleConditionOperator = (typeof RULE_CONDITION_OPERATORS)[number];
+
+export const RULE_CONDITION_COMBINATORS = ["AND", "OR"] as const;
+export type RuleConditionCombinator = (typeof RULE_CONDITION_COMBINATORS)[number];
 
 export const RULE_CONDITION_FIELD_LABELS: Record<RuleConditionField, string> = {
   description: "Description",

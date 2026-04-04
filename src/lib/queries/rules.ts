@@ -2,15 +2,15 @@ import { db } from "../db";
 import { transactionRules, transactions } from "../db/schema";
 import { eq, asc, isNull } from "drizzle-orm";
 import { updateTransaction } from "./transactions";
+import type { RuleCondition } from "../utils/rules";
 
 export type TransactionRule = typeof transactionRules.$inferSelect;
 
 export type RuleInput = {
   name: string;
   enabled?: boolean;
-  conditionField: string;
-  conditionOperator: string;
-  conditionValue: string;
+  conditionCombinator?: string;
+  conditions: RuleCondition[];
   setCategory?: string | null;
   setNotes?: string | null;
   setTransfer?: boolean | null;
@@ -42,14 +42,14 @@ export async function deleteRule(id: number): Promise<void> {
   await db.delete(transactionRules).where(eq(transactionRules.id, id));
 }
 
-function matchesRule(
+function matchesCondition(
   tx: { description: string; merchantName: string | null },
-  rule: TransactionRule
+  condition: RuleCondition
 ): boolean {
   const haystack =
-    (rule.conditionField === "merchantName" ? tx.merchantName : tx.description) ?? "";
-  const needle = rule.conditionValue;
-  switch (rule.conditionOperator) {
+    (condition.field === "merchantName" ? tx.merchantName : tx.description) ?? "";
+  const needle = condition.value;
+  switch (condition.operator) {
     case "contains":
       return haystack.toLowerCase().includes(needle.toLowerCase());
     case "equals":
@@ -59,6 +59,18 @@ function matchesRule(
     default:
       return false;
   }
+}
+
+function matchesRule(
+  tx: { description: string; merchantName: string | null },
+  rule: TransactionRule
+): boolean {
+  if (!Array.isArray(rule.conditions) || rule.conditions.length === 0) return false;
+  if (rule.conditionCombinator === "OR") {
+    return rule.conditions.some((c) => matchesCondition(tx, c));
+  }
+  // AND (default)
+  return rule.conditions.every((c) => matchesCondition(tx, c));
 }
 
 export async function applyRulesToTransactions(): Promise<number> {

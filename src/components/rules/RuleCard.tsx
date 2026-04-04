@@ -10,6 +10,7 @@ import {
   RULE_CONDITION_OPERATOR_LABELS,
 } from "@/lib/utils/rules";
 import type { TransactionRule } from "@/lib/queries/rules";
+import type { RuleCondition } from "@/lib/utils/rules";
 
 interface RuleCardProps {
   rule: TransactionRule;
@@ -38,12 +39,8 @@ export function RuleCard({ rule }: RuleCardProps) {
     }
   }
 
-  const fieldLabel =
-    RULE_CONDITION_FIELD_LABELS[rule.conditionField as keyof typeof RULE_CONDITION_FIELD_LABELS] ??
-    rule.conditionField;
-  const operatorLabel =
-    RULE_CONDITION_OPERATOR_LABELS[rule.conditionOperator as keyof typeof RULE_CONDITION_OPERATOR_LABELS] ??
-    rule.conditionOperator;
+  const conditions = Array.isArray(rule.conditions) ? (rule.conditions as RuleCondition[]) : [];
+  const combinator = rule.conditionCombinator ?? "AND";
 
   const actions: string[] = [];
   if (rule.setCategory) actions.push(`category → ${rule.setCategory}`);
@@ -71,10 +68,21 @@ export function RuleCard({ rule }: RuleCardProps) {
         {/* Content */}
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium">{rule.name}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {fieldLabel} {operatorLabel}{" "}
-            <span className="font-mono bg-muted px-1 rounded">{rule.conditionValue}</span>
-          </p>
+          <div className="mt-0.5 space-y-0.5">
+            {conditions.map((c, i) => {
+              const fieldLabel = RULE_CONDITION_FIELD_LABELS[c.field] ?? c.field;
+              const opLabel = RULE_CONDITION_OPERATOR_LABELS[c.operator] ?? c.operator;
+              return (
+                <p key={i} className="text-xs text-muted-foreground">
+                  {i > 0 && (
+                    <span className="font-medium text-foreground/60 mr-1">{combinator}</span>
+                  )}
+                  {fieldLabel} {opLabel}{" "}
+                  <span className="font-mono bg-muted px-1 rounded">{c.value}</span>
+                </p>
+              );
+            })}
+          </div>
           {actions.length > 0 && (
             <p className="text-xs text-muted-foreground mt-0.5">
               → {actions.join(", ")}

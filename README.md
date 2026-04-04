@@ -8,7 +8,8 @@ A personal finance tracking app built with Next.js 16, TypeScript, PostgreSQL, a
 - **Net Worth Tracking** - Monitor your overall financial health with daily snapshots
 - **Budget Management** - Create and track monthly budgets across categories
 - **Financial Goals** - Set and track progress toward your savings goals
-- **Transaction History** - View all your transactions with detailed filtering
+- **Transaction History** - View and filter all transactions by month, category, or keyword
+- **Transaction Rules** - Auto-categorise recurring transactions with AND/OR multi-condition rules that run on every sync
 - **Account Grouping** - Accounts automatically categorized as assets, liabilities, or excluded
 - **Other Assets** - Manually track offline assets (cars, property, equipment) with emoji, value, and notes
 - **Manual Accounts** - Track accounts at banks not connected to Akahu (foreign banks, cash, etc.)
@@ -116,6 +117,7 @@ docker compose down     # Stop PostgreSQL
   - `dates.ts` — Date utilities
   - `accounts.ts` — Account type → group mapping
   - `categories.ts` — NZFCC category colors
+  - `rules.ts` — Rule condition types and labels
 - `src/components/` — UI components grouped by page (dashboard/, accounts/, layout/)
 - `src/app/api/` — Route handlers (thin wrappers around query functions)
 
@@ -146,6 +148,7 @@ docker compose down     # Stop PostgreSQL
 | `sync_log` | History of sync runs |
 | `manual_assets` | User-managed offline assets with emoji, value, and notes |
 | `manual_accounts` | User-managed accounts not connected to Akahu (foreign banks, cash, etc.) |
+| `transaction_rules` | Auto-categorisation rules with JSONB conditions array and AND/OR combinator |
 
 ## Pages
 
@@ -153,7 +156,8 @@ docker compose down     # Stop PostgreSQL
 |---|---|
 | `/dashboard` | ✅ Net worth, accounts summary, recent transactions, month summary |
 | `/accounts` | ✅ All accounts grouped by asset/liability with balances; Manual Accounts and Other Assets sections for manual entries |
-| `/transactions` | ⏳ Under development |
+| `/transactions` | ✅ Transaction browser with month/category/search filters; click to edit |
+| `/rules` | ✅ Transaction rules with AND/OR multi-condition support; auto-applies on sync |
 | `/budget` | ⏳ Under development |
 | `/insights` | ⏳ Under development |
 | `/goals` | ⏳ Under development |
