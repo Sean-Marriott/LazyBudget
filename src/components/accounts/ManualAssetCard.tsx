@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, toNumber } from "@/lib/utils/currency";
-import { ManualAssetDialog } from "./ManualAssetDialog";
+import { ManualAssetDialog } from "@/components/accounts/ManualAssetDialog";
 import type { ManualAsset } from "@/lib/queries/manual-assets";
 
 interface ManualAssetCardProps {
@@ -20,10 +20,17 @@ export function ManualAssetCard({ asset }: ManualAssetCardProps) {
   const [deleting, setDeleting] = useState(false);
 
   async function handleDelete() {
+    if (!window.confirm(`Delete "${asset.name}"?`)) return;
     setDeleting(true);
     try {
-      await fetch(`/api/manual-assets/${asset.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/manual-assets/${asset.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        window.alert("Failed to delete asset. Please try again.");
+        return;
+      }
       router.refresh();
+    } catch {
+      window.alert("Failed to delete asset. Please try again.");
     } finally {
       setDeleting(false);
     }

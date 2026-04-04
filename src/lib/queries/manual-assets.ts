@@ -1,5 +1,5 @@
-import { db } from "../db";
-import { manualAssets } from "../db/schema";
+import { db } from "@/lib/db";
+import { manualAssets } from "@/lib/db/schema";
 import { eq, asc } from "drizzle-orm";
 
 export type ManualAsset = typeof manualAssets.$inferSelect;

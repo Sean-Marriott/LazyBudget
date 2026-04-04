@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ManualAssetCard } from "./ManualAssetCard";
-import { ManualAssetDialog } from "./ManualAssetDialog";
+import { ManualAssetCard } from "@/components/accounts/ManualAssetCard";
+import { ManualAssetDialog } from "@/components/accounts/ManualAssetDialog";
 import type { ManualAsset } from "@/lib/queries/manual-assets";
 
 interface OtherAssetsSectionProps {

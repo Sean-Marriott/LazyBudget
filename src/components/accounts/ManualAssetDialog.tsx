@@ -54,15 +54,25 @@ export function ManualAssetDialog({
         : "/api/manual-assets";
       const method = asset ? "PATCH" : "POST";
 
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, value, notes, emoji }),
-      });
+      let res: Response;
+      try {
+        res = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, value, notes, emoji }),
+        });
+      } catch {
+        setError("Network error. Please check your connection and try again.");
+        return;
+      }
 
       if (!res.ok) {
-        const data = await res.json();
-        setError(data.error ?? "Something went wrong");
+        let message = "Something went wrong";
+        try {
+          const data = await res.json();
+          message = data.error ?? message;
+        } catch {}
+        setError(message);
         return;
       }
 
@@ -89,7 +99,7 @@ export function ManualAssetDialog({
                 value={emoji}
                 onChange={(e) => setEmoji(e.target.value)}
                 className="text-center text-lg"
-                maxLength={2}
+
               />
             </div>
             <div className="space-y-1.5 flex-1 min-w-0">

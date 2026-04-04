@@ -3,7 +3,7 @@ import { accounts, balanceSnapshots } from "../db/schema";
 import { eq, desc } from "drizzle-orm";
 import { getAccountGroup } from "../utils/accounts";
 import { toNumber } from "../utils/currency";
-import { getAllManualAssets } from "./manual-assets";
+import { getAllManualAssets } from "@/lib/queries/manual-assets";
 
 export type AccountWithGroup = typeof accounts.$inferSelect & {
   group: "asset" | "liability" | "excluded";
