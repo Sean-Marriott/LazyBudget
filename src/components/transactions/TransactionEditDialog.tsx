@@ -92,8 +92,23 @@ export function TransactionEditDialog({
 
       router.refresh();
 
-      // Only prompt for rule creation if a meaningful action was set
-      const hasRulableAction = !!category || isTransfer || isHidden;
+      // Only prompt for rule creation when an action actually changed
+      const originalCategory = transaction.userCategory ?? "";
+      const originalNotes = transaction.notes ?? "";
+      const originalIsTransfer = transaction.isTransfer ?? false;
+      const originalIsHidden = transaction.isHidden ?? false;
+
+      const trimmedNotes = notes.trim();
+      const categoryChanged = category !== originalCategory;
+      const notesChanged = trimmedNotes !== originalNotes;
+      const isTransferChanged = isTransfer !== originalIsTransfer;
+      const isHiddenChanged = isHidden !== originalIsHidden;
+
+      const hasRulableAction =
+        (categoryChanged && !!category) ||
+        (isTransferChanged && isTransfer) ||
+        (isHiddenChanged && isHidden);
+
       if (hasRulableAction && onCreateRule) {
         const conditionField = transaction.merchantName ? "merchantName" : "description";
         const conditionValue = (transaction.merchantName ?? transaction.description).trim();
@@ -104,10 +119,10 @@ export function TransactionEditDialog({
         const prefill: RulePrefill = {
           name: suggestedName.slice(0, 80),
           conditions: [{ field: conditionField, operator: "contains", value: conditionValue }],
-          setCategory: category || undefined,
-          setNotes: notes.trim() || undefined,
-          setTransfer: isTransfer || undefined,
-          setHidden: isHidden || undefined,
+          ...(categoryChanged && category ? { setCategory: category } : {}),
+          ...(notesChanged && trimmedNotes ? { setNotes: trimmedNotes } : {}),
+          ...(isTransferChanged && isTransfer ? { setTransfer: true } : {}),
+          ...(isHiddenChanged && isHidden ? { setHidden: true } : {}),
         };
         setRulePrefill(prefill);
         setStep("prompt");
@@ -228,6 +243,7 @@ export function TransactionEditDialog({
                     →{" "}
                     {[
                       rulePrefill.setCategory,
+                      rulePrefill.setNotes && `note: "${rulePrefill.setNotes}"`,
                       rulePrefill.setTransfer && "mark as transfer",
                       rulePrefill.setHidden && "hide",
                     ]
