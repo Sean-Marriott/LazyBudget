@@ -151,6 +151,25 @@ export const manualAccounts = pgTable("manual_accounts", {
 });
 
 // ---------------------------------------------------------------------------
+// Transaction rules — auto-categorise transactions on sync
+// ---------------------------------------------------------------------------
+export const transactionRules = pgTable("transaction_rules", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  enabled: boolean("enabled").default(true).notNull(),
+  // Condition
+  conditionField: text("condition_field").notNull(),       // "description" | "merchantName"
+  conditionOperator: text("condition_operator").notNull(), // "contains" | "equals" | "starts_with"
+  conditionValue: text("condition_value").notNull(),
+  // Actions — null means "don't change this field"
+  setCategory: text("set_category"),
+  setNotes: text("set_notes"),
+  setTransfer: boolean("set_transfer"),
+  setHidden: boolean("set_hidden"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
 // Sync log — history of sync runs for debugging
 // ---------------------------------------------------------------------------
 export const syncLog = pgTable("sync_log", {

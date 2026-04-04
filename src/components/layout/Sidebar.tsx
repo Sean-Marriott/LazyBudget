@@ -11,6 +11,7 @@ import {
   Target,
   CalendarDays,
   BarChart3,
+  SlidersHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +19,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/accounts", label: "Accounts", icon: Wallet },
   { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
+  { href: "/rules", label: "Rules", icon: SlidersHorizontal },
   { href: "/budget", label: "Budget", icon: PieChart },
   { href: "/insights", label: "Insights", icon: TrendingUp },
   { href: "/goals", label: "Goals", icon: Target },
