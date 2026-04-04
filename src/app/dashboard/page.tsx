@@ -6,6 +6,7 @@ import { MonthSummaryCard } from "@/components/dashboard/MonthSummaryCard";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { AccountsSummary } from "@/components/dashboard/AccountsSummary";
 import { CashflowCard } from "@/components/dashboard/CashflowCard";
+import { SpendingBreakdownCard } from "@/components/dashboard/SpendingBreakdownCard";
 import { getAllAccounts, getNetWorthSummary } from "@/lib/queries/accounts";
 import { getRecentTransactions, getMonthSummary } from "@/lib/queries/transactions";
 
@@ -79,6 +80,9 @@ export default async function DashboardPage() {
 
             {/* Accounts summary */}
             <AccountsSummary accounts={accounts} />
+
+            {/* Spending breakdown pie chart */}
+            <SpendingBreakdownCard />
 
             {/* Recent transactions — spans 2 cols on large screens */}
             <RecentTransactions transactions={recentTx} />

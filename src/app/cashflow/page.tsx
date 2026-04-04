@@ -1,7 +1,8 @@
 import { TopBar } from "@/components/layout/TopBar";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CashflowSankey } from "@/components/cashflow/CashflowSankey";
 import { MonthSelector } from "@/components/cashflow/MonthSelector";
+import { SpendingPieChart } from "@/components/charts/SpendingPieChart";
 import { getMonthSummary, getMonthlySpendingByCategory } from "@/lib/queries/transactions";
 import { parse, startOfMonth, isValid } from "date-fns";
 
@@ -47,6 +48,16 @@ export default async function CashflowPage({
           </CardHeader>
           <CardContent className="pt-0">
             <CashflowSankey income={income} spending={spending} height={480} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Spending breakdown
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <SpendingPieChart spending={spending} />
           </CardContent>
         </Card>
       </main>
