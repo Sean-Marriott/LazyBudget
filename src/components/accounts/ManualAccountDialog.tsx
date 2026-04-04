@@ -12,20 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getAccountTypeLabel } from "@/lib/utils/accounts";
+import { getAccountTypeLabel, MANUAL_ACCOUNT_TYPES } from "@/lib/utils/accounts";
 import type { ManualAccountWithGroup } from "@/lib/queries/manual-accounts";
-
-const ACCOUNT_TYPES = [
-  "CHECKING",
-  "SAVINGS",
-  "CREDITCARD",
-  "LOAN",
-  "KIWISAVER",
-  "INVESTMENT",
-  "TERMDEPOSIT",
-  "FOREIGN",
-  "WALLET",
-] as const;
 
 interface ManualAccountDialogProps {
   open: boolean;
@@ -122,7 +110,7 @@ export function ManualAccountDialog({
               required
               className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
-              {ACCOUNT_TYPES.map((t) => (
+              {MANUAL_ACCOUNT_TYPES.map((t) => (
                 <option key={t} value={t}>
                   {getAccountTypeLabel(t)}
                 </option>

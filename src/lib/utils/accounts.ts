@@ -1,6 +1,12 @@
 // Account type → asset/liability classification for net worth
 export type AccountGroup = "asset" | "liability" | "excluded";
 
+// Types available for manual accounts (excludes TAX and REWARDS which are Akahu-specific)
+export const MANUAL_ACCOUNT_TYPES = [
+  "CHECKING", "SAVINGS", "CREDITCARD", "LOAN", "KIWISAVER",
+  "INVESTMENT", "TERMDEPOSIT", "FOREIGN", "WALLET",
+] as const;
+
 export function getAccountGroup(type: string): AccountGroup {
   switch (type) {
     case "CHECKING":

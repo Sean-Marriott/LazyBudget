@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { updateManualAccount, deleteManualAccount } from "@/lib/queries/manual-accounts";
+import { MANUAL_ACCOUNT_TYPES } from "@/lib/utils/accounts";
 
-const ALLOWED_TYPES = new Set([
-  "CHECKING", "SAVINGS", "CREDITCARD", "LOAN", "KIWISAVER",
-  "INVESTMENT", "TERMDEPOSIT", "FOREIGN", "WALLET",
-]);
+const ALLOWED_TYPES = new Set<string>(MANUAL_ACCOUNT_TYPES);
 
 export async function PATCH(
   request: Request,
