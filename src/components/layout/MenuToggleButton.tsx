@@ -1,7 +1,7 @@
 "use client";
 
 import { Menu } from "lucide-react";
-import { useSidebar } from "./SidebarContext";
+import { useSidebar } from "@/components/layout/SidebarContext";
 
 export function MenuToggleButton() {
   const { toggle } = useSidebar();

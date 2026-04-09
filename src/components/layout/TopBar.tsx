@@ -1,8 +1,8 @@
 import { db } from "@/lib/db";
 import { appSettings } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { SyncButton } from "./SyncButton";
-import { MenuToggleButton } from "./MenuToggleButton";
+import { SyncButton } from "@/components/layout/SyncButton";
+import { MenuToggleButton } from "@/components/layout/MenuToggleButton";
 
 export async function TopBar({ title }: { title: string }) {
   let lastSyncAt: string | null = null;
