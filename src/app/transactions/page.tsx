@@ -42,7 +42,7 @@ export default async function TransactionsPage({
   return (
     <>
       <TopBar title="Transactions" />
-      <main className="flex-1 overflow-auto p-6 space-y-4">
+      <main className="flex-1 overflow-auto p-3 sm:p-6 space-y-4">
         {dbError && (
           <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
             <strong>Database not available.</strong> Start Docker and run{" "}

@@ -43,7 +43,7 @@ export default async function DashboardPage() {
   return (
     <>
       <TopBar title="Dashboard" />
-      <main className="flex-1 overflow-auto p-6 space-y-6">
+      <main className="flex-1 overflow-auto p-3 sm:p-6 space-y-6">
         {dbError && (
           <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
             <strong>Database not available.</strong> Start Docker Desktop and run{" "}

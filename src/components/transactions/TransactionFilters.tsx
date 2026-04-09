@@ -60,7 +60,7 @@ export function TransactionFilters({ month, category, search }: TransactionFilte
     format(month, "yyyy-MM") === format(startOfMonth(new Date()), "yyyy-MM");
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2">
       {/* Month navigation */}
       <div className="flex items-center gap-1">
         <Button
@@ -87,7 +87,7 @@ export function TransactionFilters({ month, category, search }: TransactionFilte
       <select
         value={category ?? ""}
         onChange={(e) => handleCategoryChange(e.target.value)}
-        className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        className="flex h-9 w-full sm:w-auto rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
         <option value="">All categories</option>
         {EXPENSE_CATEGORIES.map((c) => (
@@ -104,7 +104,7 @@ export function TransactionFilters({ month, category, search }: TransactionFilte
         placeholder="Search transactions…"
         value={searchValue}
         onChange={(e) => setSearchValue(e.target.value)}
-        className="w-56"
+        className="w-full sm:w-56"
       />
     </div>
   );
