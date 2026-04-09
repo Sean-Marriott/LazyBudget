@@ -51,7 +51,7 @@ export function TransactionTable({ transactions }: TransactionTableProps) {
             <TableRow>
               <TableHead className="w-28">Date</TableHead>
               <TableHead>Description</TableHead>
-              <TableHead className="w-36">Category</TableHead>
+              <TableHead className="w-36 hidden sm:table-cell">Category</TableHead>
               <TableHead className="w-28 text-right">Amount</TableHead>
             </TableRow>
           </TableHeader>
@@ -80,7 +80,7 @@ export function TransactionTable({ transactions }: TransactionTableProps) {
                       <p className="text-xs text-muted-foreground">{tx.accountName}</p>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden sm:table-cell">
                     <span
                       className="text-xs px-1.5 py-0.5 rounded-full font-medium"
                       style={{

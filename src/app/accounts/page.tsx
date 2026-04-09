@@ -38,7 +38,7 @@ export default async function AccountsPage() {
   return (
     <>
       <TopBar title="Accounts" />
-      <main className="flex-1 overflow-auto p-6 space-y-6">
+      <main className="flex-1 overflow-auto p-3 sm:p-6 space-y-6">
         {dbError && (
           <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
             Database not available. Start Docker and run <code>npm run db:push</code> to set up the database.
@@ -48,7 +48,7 @@ export default async function AccountsPage() {
         {!dbError && (
           <>
             {/* Summary row */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Card>
                 <CardContent className="p-4">
                   <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Assets</p>

@@ -41,7 +41,7 @@ export default async function CashflowPage({
   return (
     <>
       <TopBar title="Cashflow" />
-      <main className="flex-1 overflow-auto p-6 space-y-6">
+      <main className="flex-1 overflow-auto p-3 sm:p-6 space-y-6">
         <Card>
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <MonthSelector month={month} />
