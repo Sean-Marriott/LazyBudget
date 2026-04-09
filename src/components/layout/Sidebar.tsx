@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -50,17 +51,23 @@ export function Sidebar() {
         )}
       >
         {/* Logo + close button */}
-        <div className="h-16 flex items-center justify-between px-6 border-b border-sidebar-border">
-          <span className="text-lg font-bold text-sidebar-foreground tracking-tight">
-            LazyBudget
-          </span>
+        <div className="flex flex-col items-center pt-6 pb-4 px-6 border-b border-sidebar-border relative">
           <button
             onClick={close}
-            className="md:hidden text-sidebar-foreground/70 hover:text-sidebar-foreground"
+            className="md:hidden absolute top-3 right-4 text-sidebar-foreground/70 hover:text-sidebar-foreground"
             aria-label="Close menu"
           >
             <X className="h-5 w-5" />
           </button>
+          <Image
+            src="/LazyBudgetLogo.png"
+            alt="LazyBudget"
+            width={80}
+            height={80}
+          />
+          <span className="mt-3 text-lg font-bold text-sidebar-foreground tracking-tight">
+            LazyBudget
+          </span>
         </div>
 
         {/* Navigation */}
