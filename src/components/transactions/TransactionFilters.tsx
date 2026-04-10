@@ -70,7 +70,7 @@ export function TransactionFilters({ month, category, search }: TransactionFilte
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <span className="text-sm font-medium text-muted-foreground min-w-[80px] text-center">
+        <span className="text-sm font-medium text-muted-foreground min-w-20 text-center">
           {formatMonthLabel(month)}
         </span>
         <Button
