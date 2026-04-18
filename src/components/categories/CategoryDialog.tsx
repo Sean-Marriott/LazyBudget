@@ -122,7 +122,7 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
           </div>
 
           <div className="space-y-1.5">
-            <Label>Color</Label>
+            <Label htmlFor="cat-color-hex">Color</Label>
             <div className="flex flex-wrap gap-2">
               {PRESET_COLORS.map((c) => (
                 <button
@@ -133,7 +133,8 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
                     color === c ? "border-foreground scale-110" : "border-transparent"
                   }`}
                   style={{ backgroundColor: c }}
-                  aria-label={c}
+                  aria-label={`Select color ${c}`}
+                  aria-pressed={color === c}
                 />
               ))}
             </div>
@@ -143,11 +144,13 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
                 style={{ backgroundColor: colorValid ? color : "#888" }}
               />
               <Input
+                id="cat-color-hex"
                 placeholder="#e0af68"
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
                 className="font-mono w-32"
                 maxLength={7}
+                aria-invalid={!colorValid}
               />
             </div>
           </div>

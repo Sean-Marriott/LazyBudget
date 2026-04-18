@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CategoryDialog } from "./CategoryDialog";
+import { CategoryDialog } from "@/components/categories/CategoryDialog";
 import type { Category } from "@/lib/queries/categories";
 
 interface CategoryCardProps {
@@ -26,7 +26,13 @@ export function CategoryCard({ category, transactionCount }: CategoryCardProps) 
 
     setDeleting(true);
     try {
-      const res = await fetch(`/api/categories/${category.id}`, { method: "DELETE" });
+      let res: Response;
+      try {
+        res = await fetch(`/api/categories/${category.id}`, { method: "DELETE" });
+      } catch {
+        window.alert("Failed to delete category. Please try again.");
+        return;
+      }
       if (res.ok) {
         router.refresh();
       } else {

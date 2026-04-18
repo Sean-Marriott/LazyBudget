@@ -43,6 +43,9 @@ export async function PATCH(
   if (emoji !== undefined && emoji !== null && typeof emoji !== "string") {
     return NextResponse.json({ error: "emoji must be a string" }, { status: 400 });
   }
+  if (typeof emoji === "string" && emoji.trim().length > 8) {
+    return NextResponse.json({ error: "emoji must be at most 8 characters" }, { status: 400 });
+  }
 
   const existing = await getCategoryById(numId);
   if (!existing) {
