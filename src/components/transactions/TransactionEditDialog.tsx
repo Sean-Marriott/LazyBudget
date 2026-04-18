@@ -27,6 +27,7 @@ interface TransactionEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreateRule?: (prefill: RulePrefill) => void;
+  customCategories?: Array<{ name: string }>;
 }
 
 export function TransactionEditDialog({
@@ -34,6 +35,7 @@ export function TransactionEditDialog({
   open,
   onOpenChange,
   onCreateRule,
+  customCategories,
 }: TransactionEditDialogProps) {
   const router = useRouter();
   const [category, setCategory] = useState("");
@@ -142,6 +144,7 @@ export function TransactionEditDialog({
   }
 
   const allCategories = [...EXPENSE_CATEGORIES, "Income", "Transfer"];
+  const customCategoryNames = customCategories?.map((c) => c.name) ?? [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -164,11 +167,22 @@ export function TransactionEditDialog({
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 >
                   <option value="">Auto-detect</option>
-                  {allCategories.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
+                  <optgroup label="Built-in">
+                    {allCategories.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </optgroup>
+                  {customCategoryNames.length > 0 && (
+                    <optgroup label="Custom">
+                      {customCategoryNames.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
               </div>
               <div className="space-y-1.5">

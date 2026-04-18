@@ -32,9 +32,10 @@ interface RuleDialogProps {
   onOpenChange: (open: boolean) => void;
   rule?: TransactionRule;
   initialValues?: RulePrefill;
+  customCategories?: Array<{ name: string }>;
 }
 
-export function RuleDialog({ open, onOpenChange, rule, initialValues }: RuleDialogProps) {
+export function RuleDialog({ open, onOpenChange, rule, initialValues, customCategories }: RuleDialogProps) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [conditions, setConditions] = useState<RuleCondition[]>([{ ...DEFAULT_CONDITION }]);
@@ -254,9 +255,18 @@ export function RuleDialog({ open, onOpenChange, rule, initialValues }: RuleDial
                   className={selectClass}
                 >
                   <option value="">Don't change</option>
-                  {ALL_CATEGORIES.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
+                  <optgroup label="Built-in">
+                    {ALL_CATEGORIES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </optgroup>
+                  {customCategories && customCategories.length > 0 && (
+                    <optgroup label="Custom">
+                      {customCategories.map((c) => (
+                        <option key={c.name} value={c.name}>{c.name}</option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
               </div>
               <div className="flex items-center gap-2">

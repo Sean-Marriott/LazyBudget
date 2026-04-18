@@ -9,9 +9,10 @@ import type { TransactionRule } from "@/lib/queries/rules";
 
 interface RulesSectionProps {
   rules: TransactionRule[];
+  customCategories?: Array<{ name: string }>;
 }
 
-export function RulesSection({ rules }: RulesSectionProps) {
+export function RulesSection({ rules, customCategories }: RulesSectionProps) {
   const [addOpen, setAddOpen] = useState(false);
   const [applying, setApplying] = useState(false);
   const [applyResult, setApplyResult] = useState<number | null>(null);
@@ -63,7 +64,7 @@ export function RulesSection({ rules }: RulesSectionProps) {
         ) : (
           <div className="space-y-2">
             {rules.map((rule) => (
-              <RuleCard key={rule.id} rule={rule} />
+              <RuleCard key={rule.id} rule={rule} customCategories={customCategories} />
             ))}
           </div>
         )}
@@ -87,7 +88,7 @@ export function RulesSection({ rules }: RulesSectionProps) {
         )}
       </div>
 
-      <RuleDialog open={addOpen} onOpenChange={setAddOpen} />
+      <RuleDialog open={addOpen} onOpenChange={setAddOpen} customCategories={customCategories} />
     </>
   );
 }

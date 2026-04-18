@@ -21,9 +21,10 @@ type TransactionRow = Awaited<ReturnType<typeof getTransactions>>[number];
 
 interface TransactionTableProps {
   transactions: TransactionRow[];
+  customCategories?: Array<{ name: string }>;
 }
 
-export function TransactionTable({ transactions }: TransactionTableProps) {
+export function TransactionTable({ transactions, customCategories }: TransactionTableProps) {
   const [selectedTx, setSelectedTx] = useState<TransactionRow | null>(null);
   const [rulePrefill, setRulePrefill] = useState<RulePrefill | null>(null);
   const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
@@ -114,6 +115,7 @@ export function TransactionTable({ transactions }: TransactionTableProps) {
             if (!open) setSelectedTx(null);
           }}
           onCreateRule={handleCreateRule}
+          customCategories={customCategories}
         />
       )}
 

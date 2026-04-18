@@ -114,9 +114,12 @@ export function mapAkahuCategoryToGroup(
   return "Uncategorised";
 }
 
-export function getCategoryColor(category: string | null | undefined): string {
+export function getCategoryColor(
+  category: string | null | undefined,
+  customColors?: Record<string, string>
+): string {
   if (!category) return CATEGORY_COLORS["Uncategorised"];
-  return CATEGORY_COLORS[category] ?? "#565f89";
+  return CATEGORY_COLORS[category] ?? customColors?.[category] ?? "#565f89";
 }
 
 export function getCategoryLabel(category: string | null | undefined): string {

@@ -3,11 +3,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockGetRuleById = vi.hoisted(() => vi.fn());
 const mockUpdateRule = vi.hoisted(() => vi.fn());
 const mockDeleteRule = vi.hoisted(() => vi.fn());
+const mockGetAllCategories = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/queries/rules", () => ({
   getRuleById: mockGetRuleById,
   updateRule: mockUpdateRule,
   deleteRule: mockDeleteRule,
+}));
+
+vi.mock("@/lib/queries/categories", () => ({
+  getAllCategories: mockGetAllCategories,
 }));
 
 import { PATCH, DELETE } from "./route";
@@ -55,10 +60,12 @@ beforeEach(() => {
   mockGetRuleById.mockReset();
   mockUpdateRule.mockReset();
   mockDeleteRule.mockReset();
+  mockGetAllCategories.mockReset();
   // By default, the rule exists and has an action (setCategory)
   mockGetRuleById.mockResolvedValue(UPDATED_RULE);
   mockUpdateRule.mockResolvedValue(UPDATED_RULE);
   mockDeleteRule.mockResolvedValue(undefined);
+  mockGetAllCategories.mockResolvedValue([]);
 });
 
 // ---------------------------------------------------------------------------

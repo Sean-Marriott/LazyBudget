@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAllRules, createRule } from "@/lib/queries/rules";
+import { getAllCategories } from "@/lib/queries/categories";
 import { RULE_CONDITION_FIELDS, RULE_CONDITION_OPERATORS, RULE_CONDITION_COMBINATORS } from "@/lib/utils/rules";
 import { EXPENSE_CATEGORIES } from "@/lib/utils/categories";
 import type { RuleCondition } from "@/lib/utils/rules";
@@ -7,7 +8,7 @@ import type { RuleCondition } from "@/lib/utils/rules";
 const ALLOWED_FIELDS = new Set<string>(RULE_CONDITION_FIELDS);
 const ALLOWED_OPERATORS = new Set<string>(RULE_CONDITION_OPERATORS);
 const ALLOWED_COMBINATORS = new Set<string>(RULE_CONDITION_COMBINATORS);
-const ALLOWED_CATEGORIES = new Set<string>([...EXPENSE_CATEGORIES, "Income", "Transfer"]);
+const BUILTIN_CATEGORIES = new Set<string>([...EXPENSE_CATEGORIES, "Income", "Transfer"]);
 
 function validateConditions(conditions: unknown): conditions is RuleCondition[] {
   if (!Array.isArray(conditions) || conditions.length === 0) return false;
@@ -54,8 +55,15 @@ export async function POST(request: Request) {
     );
   }
   if (setCategory !== undefined && setCategory !== null) {
-    if (typeof setCategory !== "string" || !ALLOWED_CATEGORIES.has(setCategory)) {
+    if (typeof setCategory !== "string") {
       return NextResponse.json({ error: "invalid setCategory" }, { status: 400 });
+    }
+    if (!BUILTIN_CATEGORIES.has(setCategory)) {
+      const customCats = await getAllCategories();
+      const customNames = new Set(customCats.map((c) => c.name));
+      if (!customNames.has(setCategory)) {
+        return NextResponse.json({ error: "invalid setCategory" }, { status: 400 });
+      }
     }
   }
   if (setNotes !== undefined && setNotes !== null && typeof setNotes !== "string") {

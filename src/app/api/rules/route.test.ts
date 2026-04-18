@@ -2,10 +2,15 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockGetAllRules = vi.hoisted(() => vi.fn());
 const mockCreateRule = vi.hoisted(() => vi.fn());
+const mockGetAllCategories = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/queries/rules", () => ({
   getAllRules: mockGetAllRules,
   createRule: mockCreateRule,
+}));
+
+vi.mock("@/lib/queries/categories", () => ({
+  getAllCategories: mockGetAllCategories,
 }));
 
 import { GET, POST } from "./route";
@@ -48,8 +53,10 @@ const CREATED_RULE = {
 beforeEach(() => {
   mockGetAllRules.mockReset();
   mockCreateRule.mockReset();
+  mockGetAllCategories.mockReset();
   mockGetAllRules.mockResolvedValue([]);
   mockCreateRule.mockResolvedValue(CREATED_RULE);
+  mockGetAllCategories.mockResolvedValue([]);
 });
 
 // ---------------------------------------------------------------------------

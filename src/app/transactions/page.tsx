@@ -2,6 +2,7 @@ import { TopBar } from "@/components/layout/TopBar";
 import { TransactionFilters } from "@/components/transactions/TransactionFilters";
 import { TransactionTable } from "@/components/transactions/TransactionTable";
 import { getTransactions } from "@/lib/queries/transactions";
+import { getAllCategories } from "@/lib/queries/categories";
 import { parse, startOfMonth, endOfMonth, isValid } from "date-fns";
 import { Suspense } from "react";
 
@@ -26,15 +27,19 @@ export default async function TransactionsPage({
   const month = startOfMonth(isValid(parsedMonth) ? parsedMonth : new Date());
 
   let txList: Awaited<ReturnType<typeof getTransactions>> = [];
+  let customCats: Awaited<ReturnType<typeof getAllCategories>> = [];
   let dbError = false;
 
   try {
-    txList = await getTransactions({
-      monthStart: startOfMonth(month),
-      monthEnd: endOfMonth(month),
-      category: category || undefined,
-      search: search || undefined,
-    });
+    [txList, customCats] = await Promise.all([
+      getTransactions({
+        monthStart: startOfMonth(month),
+        monthEnd: endOfMonth(month),
+        category: category || undefined,
+        search: search || undefined,
+      }),
+      getAllCategories(),
+    ]);
   } catch {
     dbError = true;
   }
@@ -51,10 +56,10 @@ export default async function TransactionsPage({
         )}
 
         <Suspense>
-          <TransactionFilters month={month} category={category} search={search} />
+          <TransactionFilters month={month} category={category} search={search} customCategories={customCats} />
         </Suspense>
 
-        {!dbError && <TransactionTable transactions={txList} />}
+        {!dbError && <TransactionTable transactions={txList} customCategories={customCats} />}
       </main>
     </>
   );
