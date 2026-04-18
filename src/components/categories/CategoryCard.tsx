@@ -15,6 +15,7 @@ interface CategoryCardProps {
 export function CategoryCard({ category, transactionCount }: CategoryCardProps) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   async function handleDelete() {
     const msg =
@@ -23,11 +24,16 @@ export function CategoryCard({ category, transactionCount }: CategoryCardProps) 
         : `Delete "${category.name}"?`;
     if (!window.confirm(msg)) return;
 
-    const res = await fetch(`/api/categories/${category.id}`, { method: "DELETE" });
-    if (res.ok) {
-      router.refresh();
-    } else {
-      window.alert("Failed to delete category. Please try again.");
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/categories/${category.id}`, { method: "DELETE" });
+      if (res.ok) {
+        router.refresh();
+      } else {
+        window.alert("Failed to delete category. Please try again.");
+      }
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -63,6 +69,7 @@ export function CategoryCard({ category, transactionCount }: CategoryCardProps) 
             variant="ghost"
             size="icon"
             className="h-7 w-7"
+            aria-label="Edit category"
             onClick={() => setEditOpen(true)}
           >
             <Pencil className="h-3.5 w-3.5" />
@@ -71,6 +78,8 @@ export function CategoryCard({ category, transactionCount }: CategoryCardProps) 
             variant="ghost"
             size="icon"
             className="h-7 w-7 text-destructive hover:text-destructive"
+            aria-label="Delete category"
+            disabled={deleting}
             onClick={handleDelete}
           >
             <Trash2 className="h-3.5 w-3.5" />

@@ -100,15 +100,19 @@ export function TransactionFilters({ month, category, search, customCategories }
           <option value="Income">Income</option>
           <option value="Transfer">Transfer</option>
         </optgroup>
-        {customCategories && customCategories.length > 0 && (
-          <optgroup label="Custom">
-            {customCategories.map((c) => (
-              <option key={c.name} value={c.name}>
-                {c.name}
-              </option>
-            ))}
-          </optgroup>
-        )}
+        {(() => {
+          const builtIn = [...EXPENSE_CATEGORIES, "Income", "Transfer"];
+          const filtered = (customCategories ?? []).filter((c) => !builtIn.includes(c.name));
+          return filtered.length > 0 ? (
+            <optgroup label="Custom">
+              {filtered.map((c) => (
+                <option key={c.name} value={c.name}>
+                  {c.name}
+                </option>
+              ))}
+            </optgroup>
+          ) : null;
+        })()}
       </select>
 
       {/* Search input */}

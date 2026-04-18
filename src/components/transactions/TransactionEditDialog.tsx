@@ -144,7 +144,9 @@ export function TransactionEditDialog({
   }
 
   const allCategories = [...EXPENSE_CATEGORIES, "Income", "Transfer"];
-  const customCategoryNames = customCategories?.map((c) => c.name) ?? [];
+  const customCategoryNames = (customCategories ?? [])
+    .map((c) => c.name)
+    .filter((n) => !allCategories.includes(n));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

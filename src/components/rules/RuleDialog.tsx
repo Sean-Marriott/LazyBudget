@@ -260,13 +260,18 @@ export function RuleDialog({ open, onOpenChange, rule, initialValues, customCate
                       <option key={c} value={c}>{c}</option>
                     ))}
                   </optgroup>
-                  {customCategories && customCategories.length > 0 && (
-                    <optgroup label="Custom">
-                      {customCategories.map((c) => (
-                        <option key={c.name} value={c.name}>{c.name}</option>
-                      ))}
-                    </optgroup>
-                  )}
+                  {(() => {
+                    const filtered = (customCategories ?? []).filter(
+                      (c) => !ALL_CATEGORIES.includes(c.name)
+                    );
+                    return filtered.length > 0 ? (
+                      <optgroup label="Custom">
+                        {filtered.map((c) => (
+                          <option key={c.name} value={c.name}>{c.name}</option>
+                        ))}
+                      </optgroup>
+                    ) : null;
+                  })()}
                 </select>
               </div>
               <div className="flex items-center gap-2">

@@ -106,6 +106,7 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
                 value={emoji}
                 onChange={(e) => setEmoji(e.target.value)}
                 className="text-center text-lg"
+                maxLength={8}
               />
             </div>
             <div className="space-y-1.5 flex-1 min-w-0">

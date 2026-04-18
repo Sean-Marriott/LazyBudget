@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { categories, transactions } from "@/lib/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, sql } from "drizzle-orm";
 
 export type Category = typeof categories.$inferSelect;
 
@@ -37,12 +37,30 @@ export async function updateCategory(
 }
 
 export async function deleteCategory(id: number): Promise<void> {
-  const [cat] = await db.select().from(categories).where(eq(categories.id, id));
-  if (cat) {
-    await db
-      .update(transactions)
-      .set({ userCategory: null })
-      .where(eq(transactions.userCategory, cat.name));
-  }
-  await db.delete(categories).where(eq(categories.id, id));
+  await db.transaction(async (tx) => {
+    const [cat] = await tx.select().from(categories).where(eq(categories.id, id));
+    if (cat) {
+      await tx
+        .update(transactions)
+        .set({ userCategory: null })
+        .where(eq(transactions.userCategory, cat.name));
+    }
+    await tx.delete(categories).where(eq(categories.id, id));
+  });
+}
+
+export async function getTransactionCountsByCategory(): Promise<Record<string, number>> {
+  const rows = await db
+    .select({
+      userCategory: transactions.userCategory,
+      count: sql<number>`cast(count(*) as int)`,
+    })
+    .from(transactions)
+    .groupBy(transactions.userCategory);
+
+  return Object.fromEntries(
+    rows
+      .filter((r) => r.userCategory !== null)
+      .map((r) => [r.userCategory as string, r.count])
+  );
 }

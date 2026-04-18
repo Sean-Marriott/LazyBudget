@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { transactions } from "@/lib/db/schema";
+import { categories, transactions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import {
   getCategoryById,
-  updateCategory,
   deleteCategory,
 } from "@/lib/queries/categories";
 
@@ -57,16 +56,24 @@ export async function PATCH(
     data.emoji = typeof emoji === "string" ? emoji.trim() || null : null;
   }
 
-  // Cascade rename: update userCategory on affected transactions
-  if (data.name && data.name !== existing.name) {
-    await db
-      .update(transactions)
-      .set({ userCategory: data.name })
-      .where(eq(transactions.userCategory, existing.name));
-  }
-
   try {
-    const cat = await updateCategory(numId, data);
+    const cat = await db.transaction(async (tx) => {
+      // Cascade rename: update userCategory on affected transactions atomically
+      if (data.name && data.name !== existing.name) {
+        await tx
+          .update(transactions)
+          .set({ userCategory: data.name })
+          .where(eq(transactions.userCategory, existing.name));
+      }
+
+      const [updated] = await tx
+        .update(categories)
+        .set(data)
+        .where(eq(categories.id, numId))
+        .returning();
+      return updated ?? null;
+    });
+
     if (!cat) return NextResponse.json({ error: "not found" }, { status: 404 });
     return NextResponse.json(cat);
   } catch (err: unknown) {
@@ -93,6 +100,11 @@ export async function DELETE(
   const numId = Number(id);
   if (!Number.isInteger(numId) || numId <= 0) {
     return NextResponse.json({ error: "invalid id" }, { status: 400 });
+  }
+
+  const existing = await getCategoryById(numId);
+  if (!existing) {
+    return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 
   await deleteCategory(numId);

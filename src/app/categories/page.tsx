@@ -1,9 +1,6 @@
 import { TopBar } from "@/components/layout/TopBar";
 import { CategoriesSection } from "@/components/categories/CategoriesSection";
-import { getAllCategories } from "@/lib/queries/categories";
-import { db } from "@/lib/db";
-import { transactions } from "@/lib/db/schema";
-import { sql } from "drizzle-orm";
+import { getAllCategories, getTransactionCountsByCategory } from "@/lib/queries/categories";
 
 export const dynamic = "force-dynamic";
 
@@ -13,26 +10,14 @@ export default async function CategoriesPage() {
   let dbError = false;
 
   try {
-    cats = await getAllCategories();
-
-    if (cats.length > 0) {
-      const counts = await db
-        .select({
-          userCategory: transactions.userCategory,
-          count: sql<number>`cast(count(*) as int)`,
-        })
-        .from(transactions)
-        .groupBy(transactions.userCategory);
-
-      const nameToCount = Object.fromEntries(
-        counts
-          .filter((r) => r.userCategory !== null)
-          .map((r) => [r.userCategory as string, r.count])
-      );
-      transactionCounts = Object.fromEntries(
-        cats.map((c) => [c.id, nameToCount[c.name] ?? 0])
-      );
-    }
+    const [fetchedCats, countsByName] = await Promise.all([
+      getAllCategories(),
+      getTransactionCountsByCategory(),
+    ]);
+    cats = fetchedCats;
+    transactionCounts = Object.fromEntries(
+      cats.map((c) => [c.id, countsByName[c.name] ?? 0])
+    );
   } catch {
     dbError = true;
   }
