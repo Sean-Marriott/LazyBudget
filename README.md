@@ -5,14 +5,17 @@ A personal finance tracking app built with Next.js 16, TypeScript, PostgreSQL, a
 ## Features
 
 - **Account Sync** - Automatically sync your financial accounts via Akahu API
-- **Net Worth Tracking** - Monitor your overall financial health with daily snapshots
-- **Budget Management** - Create and track monthly budgets across categories
-- **Financial Goals** - Set and track progress toward your savings goals
+- **Net Worth Tracking** - Monitor your overall financial health with daily snapshots and historical trend charts
+- **Insights** - Net worth trends, per-account sparklines, monthly income/spending, and top spending category trends with toggleable time ranges (3M / 6M / 1Y / All)
 - **Transaction History** - View and filter all transactions by month, category, or keyword
 - **Transaction Rules** - Auto-categorise recurring transactions with AND/OR multi-condition rules that run on every sync
+- **Custom Categories** - Create custom transaction categories with color picker and emoji
+- **Cashflow** - Income vs spending Sankey diagram with month selector
 - **Account Grouping** - Accounts automatically categorized as assets, liabilities, or excluded
-- **Other Assets** - Manually track offline assets (cars, property, equipment) with emoji, value, and notes
-- **Manual Accounts** - Track accounts at banks not connected to Akahu (foreign banks, cash, etc.)
+- **Other Assets** - Manually track offline assets (cars, property, equipment) with value history over time
+- **Manual Accounts** - Track accounts at banks not connected to Akahu with balance history over time
+- **Budget Management** - Create and track monthly budgets across categories *(coming soon)*
+- **Financial Goals** - Set and track progress toward your savings goals *(coming soon)*
 - **Client-Side Sync Control** - Manual sync button with cooldown enforcement
 
 ## Tech Stack
@@ -166,20 +169,23 @@ Tests live alongside the code they cover as `*.test.ts` files under `src/`. No r
 | `manual_assets` | User-managed offline assets with emoji, value, and notes |
 | `manual_accounts` | User-managed accounts not connected to Akahu (foreign banks, cash, etc.) |
 | `transaction_rules` | Auto-categorisation rules with JSONB conditions array and AND/OR combinator |
+| `categories` | User-defined transaction categories with hex color and emoji |
+| `manual_account_snapshots` | Historical balance entries for manual accounts (recorded via "Update Value") |
+| `manual_asset_snapshots` | Historical value entries for manual assets (recorded via "Update Value") |
 
 ## Pages
 
 | Route | Status |
 |---|---|
-| `/dashboard` | ✅ Net worth, accounts summary, recent transactions, month summary |
-| `/accounts` | ✅ All accounts grouped by asset/liability with balances; Manual Accounts and Other Assets sections for manual entries |
+| `/dashboard` | ✅ Net worth, accounts summary, recent transactions, month summary, compact insights preview |
+| `/accounts` | ✅ All accounts grouped by asset/liability; Manual Accounts and Other Assets with "Update Value" history tracking |
 | `/transactions` | ✅ Transaction browser with month/category/search filters; click to edit |
 | `/rules` | ✅ Transaction rules with AND/OR multi-condition support; auto-applies on sync |
-| `/budget` | ⏳ Under development |
-| `/insights` | ⏳ Under development |
-| `/goals` | ⏳ Under development |
+| `/categories` | ✅ Custom category CRUD with color picker and emoji |
+| `/insights` | ✅ Net worth trend, per-account sparklines, monthly income/spending, top-5 category trends |
 | `/cashflow` | ✅ Income vs spending Sankey diagram with month selector |
-| `/net-worth` | ⏳ Under development |
+| `/budget` | ⏳ Under development |
+| `/goals` | ⏳ Under development |
 
 ## Project Structure
 

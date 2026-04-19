@@ -13,6 +13,7 @@ import {
   Building,
   Pencil,
   Trash2,
+  RefreshCw,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { formatCurrency, toNumber } from "@/lib/utils/currency";
 import { getAccountTypeLabel, getAccountTypeColor } from "@/lib/utils/accounts";
 import { ManualAccountDialog } from "@/components/accounts/ManualAccountDialog";
+import { UpdateValueDialog } from "@/components/accounts/UpdateValueDialog";
 import type { ManualAccountWithGroup } from "@/lib/queries/manual-accounts";
 
 function AccountTypeIcon({ type }: { type: string }) {
@@ -45,6 +47,7 @@ interface ManualAccountCardProps {
 export function ManualAccountCard({ account }: ManualAccountCardProps) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
+  const [updateOpen, setUpdateOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   const balance = toNumber(account.balance);
@@ -101,6 +104,14 @@ export function ManualAccountCard({ account }: ManualAccountCardProps) {
               <Button
                 variant="ghost"
                 size="icon-sm"
+                onClick={() => setUpdateOpen(true)}
+                aria-label="Update value"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
                 onClick={() => setEditOpen(true)}
                 aria-label="Edit"
               >
@@ -125,6 +136,15 @@ export function ManualAccountCard({ account }: ManualAccountCardProps) {
         open={editOpen}
         onOpenChange={setEditOpen}
         account={account}
+      />
+
+      <UpdateValueDialog
+        open={updateOpen}
+        onOpenChange={setUpdateOpen}
+        entityId={account.id}
+        entityName={account.name}
+        entityType="account"
+        currentValue={balance}
       />
     </>
   );

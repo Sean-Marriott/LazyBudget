@@ -1,7 +1,8 @@
 import { db } from "@/lib/db";
-import { manualAccounts } from "@/lib/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { manualAccounts, manualAccountSnapshots } from "@/lib/db/schema";
+import { eq, asc, gte, sql } from "drizzle-orm";
 import { getAccountGroup } from "@/lib/utils/accounts";
+import { toNumber } from "@/lib/utils/currency";
 import type { AccountGroup } from "@/lib/utils/accounts";
 
 export type ManualAccount = typeof manualAccounts.$inferSelect;
@@ -42,4 +43,54 @@ export async function updateManualAccount(
 
 export async function deleteManualAccount(id: number): Promise<void> {
   await db.delete(manualAccounts).where(eq(manualAccounts.id, id));
+}
+
+export async function addManualAccountSnapshot(
+  id: number,
+  balance: string,
+  snapshotDate: string
+): Promise<void> {
+  await db
+    .insert(manualAccountSnapshots)
+    .values({ manualAccountId: id, balance, snapshotDate })
+    .onConflictDoUpdate({
+      target: [manualAccountSnapshots.manualAccountId, manualAccountSnapshots.snapshotDate],
+      set: { balance },
+    });
+}
+
+export async function getManualAccountSnapshots(
+  id: number,
+  days: number
+): Promise<Array<{ date: string; balance: number }>> {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  const rows = await db
+    .select({
+      date: manualAccountSnapshots.snapshotDate,
+      balance: manualAccountSnapshots.balance,
+    })
+    .from(manualAccountSnapshots)
+    .where(
+      sql`${manualAccountSnapshots.manualAccountId} = ${id} AND ${manualAccountSnapshots.snapshotDate} >= ${cutoff.toISOString().slice(0, 10)}`
+    )
+    .orderBy(asc(manualAccountSnapshots.snapshotDate));
+  return rows.map((r) => ({ date: r.date, balance: toNumber(r.balance) }));
+}
+
+export async function getAllManualAccountSnapshotsSince(
+  days: number
+): Promise<Array<{ manualAccountId: number; date: string; balance: number }>> {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  const rows = await db
+    .select({
+      manualAccountId: manualAccountSnapshots.manualAccountId,
+      date: manualAccountSnapshots.snapshotDate,
+      balance: manualAccountSnapshots.balance,
+    })
+    .from(manualAccountSnapshots)
+    .where(gte(manualAccountSnapshots.snapshotDate, cutoff.toISOString().slice(0, 10)))
+    .orderBy(asc(manualAccountSnapshots.snapshotDate));
+  return rows.map((r) => ({ ...r, balance: toNumber(r.balance) }));
 }

@@ -4,6 +4,7 @@ import {
   numeric,
   boolean,
   serial,
+  integer,
   date,
   timestamp,
   uniqueIndex,
@@ -180,6 +181,50 @@ export const categories = pgTable("categories", {
   emoji: text("emoji"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
+
+// ---------------------------------------------------------------------------
+// Manual account snapshots — historical balance for manual accounts
+// ---------------------------------------------------------------------------
+export const manualAccountSnapshots = pgTable(
+  "manual_account_snapshots",
+  {
+    id: serial("id").primaryKey(),
+    manualAccountId: integer("manual_account_id")
+      .notNull()
+      .references(() => manualAccounts.id, { onDelete: "cascade" }),
+    snapshotDate: date("snapshot_date").notNull(),
+    balance: numeric("balance", { precision: 12, scale: 2 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("manual_account_snapshots_account_date_idx").on(
+      t.manualAccountId,
+      t.snapshotDate
+    ),
+  ]
+);
+
+// ---------------------------------------------------------------------------
+// Manual asset snapshots — historical value for manual assets
+// ---------------------------------------------------------------------------
+export const manualAssetSnapshots = pgTable(
+  "manual_asset_snapshots",
+  {
+    id: serial("id").primaryKey(),
+    manualAssetId: integer("manual_asset_id")
+      .notNull()
+      .references(() => manualAssets.id, { onDelete: "cascade" }),
+    snapshotDate: date("snapshot_date").notNull(),
+    value: numeric("value", { precision: 12, scale: 2 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("manual_asset_snapshots_asset_date_idx").on(
+      t.manualAssetId,
+      t.snapshotDate
+    ),
+  ]
+);
 
 // ---------------------------------------------------------------------------
 // Sync log — history of sync runs for debugging

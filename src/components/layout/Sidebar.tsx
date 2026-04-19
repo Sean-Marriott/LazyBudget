@@ -11,7 +11,6 @@ import {
   TrendingUp,
   Target,
   CalendarDays,
-  BarChart3,
   SlidersHorizontal,
   Tag,
   X,
@@ -29,7 +28,6 @@ const navItems = [
   { href: "/insights", label: "Insights", icon: TrendingUp },
   { href: "/goals", label: "Goals", icon: Target },
   { href: "/cashflow", label: "Cashflow", icon: CalendarDays },
-  { href: "/net-worth", label: "Net Worth", icon: BarChart3 },
 ];
 
 export function Sidebar() {

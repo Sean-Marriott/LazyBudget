@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
-import { manualAssets } from "@/lib/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { manualAssets, manualAssetSnapshots } from "@/lib/db/schema";
+import { eq, asc, gte, sql } from "drizzle-orm";
+import { toNumber } from "@/lib/utils/currency";
 
 export type ManualAsset = typeof manualAssets.$inferSelect;
 
@@ -38,4 +39,54 @@ export async function updateManualAsset(
 
 export async function deleteManualAsset(id: number): Promise<void> {
   await db.delete(manualAssets).where(eq(manualAssets.id, id));
+}
+
+export async function addManualAssetSnapshot(
+  id: number,
+  value: string,
+  snapshotDate: string
+): Promise<void> {
+  await db
+    .insert(manualAssetSnapshots)
+    .values({ manualAssetId: id, value, snapshotDate })
+    .onConflictDoUpdate({
+      target: [manualAssetSnapshots.manualAssetId, manualAssetSnapshots.snapshotDate],
+      set: { value },
+    });
+}
+
+export async function getManualAssetSnapshots(
+  id: number,
+  days: number
+): Promise<Array<{ date: string; value: number }>> {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  const rows = await db
+    .select({
+      date: manualAssetSnapshots.snapshotDate,
+      value: manualAssetSnapshots.value,
+    })
+    .from(manualAssetSnapshots)
+    .where(
+      sql`${manualAssetSnapshots.manualAssetId} = ${id} AND ${manualAssetSnapshots.snapshotDate} >= ${cutoff.toISOString().slice(0, 10)}`
+    )
+    .orderBy(asc(manualAssetSnapshots.snapshotDate));
+  return rows.map((r) => ({ date: r.date, value: toNumber(r.value) }));
+}
+
+export async function getAllManualAssetSnapshotsSince(
+  days: number
+): Promise<Array<{ manualAssetId: number; date: string; value: number }>> {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  const rows = await db
+    .select({
+      manualAssetId: manualAssetSnapshots.manualAssetId,
+      date: manualAssetSnapshots.snapshotDate,
+      value: manualAssetSnapshots.value,
+    })
+    .from(manualAssetSnapshots)
+    .where(gte(manualAssetSnapshots.snapshotDate, cutoff.toISOString().slice(0, 10)))
+    .orderBy(asc(manualAssetSnapshots.snapshotDate));
+  return rows.map((r) => ({ ...r, value: toNumber(r.value) }));
 }
