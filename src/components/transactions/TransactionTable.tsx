@@ -21,10 +21,13 @@ type TransactionRow = Awaited<ReturnType<typeof getTransactions>>[number];
 
 interface TransactionTableProps {
   transactions: TransactionRow[];
-  customCategories?: Array<{ name: string }>;
+  customCategories?: Array<{ name: string; color: string }>;
 }
 
 export function TransactionTable({ transactions, customCategories }: TransactionTableProps) {
+  const customColorMap = Object.fromEntries(
+    (customCategories ?? []).map((c) => [c.name, c.color])
+  );
   const [selectedTx, setSelectedTx] = useState<TransactionRow | null>(null);
   const [rulePrefill, setRulePrefill] = useState<RulePrefill | null>(null);
   const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
@@ -85,8 +88,8 @@ export function TransactionTable({ transactions, customCategories }: Transaction
                     <span
                       className="text-xs px-1.5 py-0.5 rounded-full font-medium"
                       style={{
-                        backgroundColor: getCategoryColor(category) + "20",
-                        color: getCategoryColor(category),
+                        backgroundColor: getCategoryColor(category, customColorMap) + "20",
+                        color: getCategoryColor(category, customColorMap),
                       }}
                     >
                       {getCategoryLabel(category)}
