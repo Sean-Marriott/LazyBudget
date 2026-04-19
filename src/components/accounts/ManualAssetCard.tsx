@@ -13,9 +13,10 @@ import type { ManualAsset } from "@/lib/queries/manual-assets";
 
 interface ManualAssetCardProps {
   asset: ManualAsset;
+  latestSnapshotDate?: string;
 }
 
-export function ManualAssetCard({ asset }: ManualAssetCardProps) {
+export function ManualAssetCard({ asset, latestSnapshotDate }: ManualAssetCardProps) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
   const [updateOpen, setUpdateOpen] = useState(false);
@@ -105,6 +106,7 @@ export function ManualAssetCard({ asset }: ManualAssetCardProps) {
         open={editOpen}
         onOpenChange={setEditOpen}
         asset={asset}
+        latestSnapshotDate={latestSnapshotDate}
       />
 
       <UpdateValueDialog

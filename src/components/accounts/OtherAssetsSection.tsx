@@ -9,9 +9,10 @@ import type { ManualAsset } from "@/lib/queries/manual-assets";
 
 interface OtherAssetsSectionProps {
   assets: ManualAsset[];
+  latestSnapshotDates: Record<number, string>;
 }
 
-export function OtherAssetsSection({ assets }: OtherAssetsSectionProps) {
+export function OtherAssetsSection({ assets, latestSnapshotDates }: OtherAssetsSectionProps) {
   const [addOpen, setAddOpen] = useState(false);
 
   return (
@@ -28,7 +29,7 @@ export function OtherAssetsSection({ assets }: OtherAssetsSectionProps) {
       {assets.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {assets.map((a) => (
-            <ManualAssetCard key={a.id} asset={a} />
+            <ManualAssetCard key={a.id} asset={a} latestSnapshotDate={latestSnapshotDates[a.id]} />
           ))}
         </div>
       )}

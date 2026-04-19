@@ -10,9 +10,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Info } from "lucide-react";
 
 interface UpdateValueDialogProps {
   open: boolean;
@@ -116,7 +123,24 @@ export function UpdateValueDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="update-date">Date</Label>
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="update-date">Date</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-64">
+                    <p>
+                      Records a snapshot for this date. If this is the most recent
+                      entry, the current balance will also be updated. Backdated
+                      entries are saved for history but won&apos;t overwrite the
+                      current value.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <Input
               id="update-date"
               type="date"

@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { manualAssets, manualAssetSnapshots } from "@/lib/db/schema";
-import { eq, asc, gte, sql } from "drizzle-orm";
+import { and, eq, asc, gte, max, sql } from "drizzle-orm";
 import { toNumber } from "@/lib/utils/currency";
 
 export type ManualAsset = typeof manualAssets.$inferSelect;
@@ -29,12 +29,32 @@ export async function updateManualAsset(
   notes?: string,
   emoji?: string
 ): Promise<ManualAsset | null> {
-  const [row] = await db
-    .update(manualAssets)
-    .set({ name, value, notes: notes ?? null, emoji: emoji ?? null, updatedAt: new Date() })
-    .where(eq(manualAssets.id, id))
-    .returning();
-  return row ?? null;
+  return db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(manualAssets)
+      .set({ name, value, notes: notes ?? null, emoji: emoji ?? null, updatedAt: new Date() })
+      .where(eq(manualAssets.id, id))
+      .returning();
+
+    const [{ latestDate }] = await tx
+      .select({ latestDate: max(manualAssetSnapshots.snapshotDate) })
+      .from(manualAssetSnapshots)
+      .where(eq(manualAssetSnapshots.manualAssetId, id));
+
+    if (latestDate) {
+      await tx
+        .update(manualAssetSnapshots)
+        .set({ value })
+        .where(
+          and(
+            eq(manualAssetSnapshots.manualAssetId, id),
+            eq(manualAssetSnapshots.snapshotDate, latestDate)
+          )
+        );
+    }
+
+    return row ?? null;
+  });
 }
 
 export async function deleteManualAsset(id: number): Promise<void> {
@@ -46,13 +66,27 @@ export async function addManualAssetSnapshot(
   value: string,
   snapshotDate: string
 ): Promise<void> {
-  await db
-    .insert(manualAssetSnapshots)
-    .values({ manualAssetId: id, value, snapshotDate })
-    .onConflictDoUpdate({
-      target: [manualAssetSnapshots.manualAssetId, manualAssetSnapshots.snapshotDate],
-      set: { value },
-    });
+  await db.transaction(async (tx) => {
+    await tx
+      .insert(manualAssetSnapshots)
+      .values({ manualAssetId: id, value, snapshotDate })
+      .onConflictDoUpdate({
+        target: [manualAssetSnapshots.manualAssetId, manualAssetSnapshots.snapshotDate],
+        set: { value },
+      });
+
+    const [{ latestDate }] = await tx
+      .select({ latestDate: max(manualAssetSnapshots.snapshotDate) })
+      .from(manualAssetSnapshots)
+      .where(eq(manualAssetSnapshots.manualAssetId, id));
+
+    if (!latestDate || snapshotDate >= latestDate) {
+      await tx
+        .update(manualAssets)
+        .set({ value, updatedAt: new Date() })
+        .where(eq(manualAssets.id, id));
+    }
+  });
 }
 
 export async function getManualAssetSnapshots(
@@ -72,6 +106,19 @@ export async function getManualAssetSnapshots(
     )
     .orderBy(asc(manualAssetSnapshots.snapshotDate));
   return rows.map((r) => ({ date: r.date, value: toNumber(r.value) }));
+}
+
+export async function getLatestManualAssetSnapshotDates(): Promise<Record<number, string>> {
+  const rows = await db
+    .select({
+      manualAssetId: manualAssetSnapshots.manualAssetId,
+      latestDate: max(manualAssetSnapshots.snapshotDate),
+    })
+    .from(manualAssetSnapshots)
+    .groupBy(manualAssetSnapshots.manualAssetId);
+  return Object.fromEntries(
+    rows.filter((r) => r.latestDate).map((r) => [r.manualAssetId, r.latestDate!])
+  );
 }
 
 export async function getAllManualAssetSnapshotsSince(

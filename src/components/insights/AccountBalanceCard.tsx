@@ -1,10 +1,21 @@
 "use client";
 
-import { LineChart, Line, ResponsiveContainer } from "recharts";
+import { LineChart, Line, ResponsiveContainer, Tooltip } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency, formatCurrencyCompact } from "@/lib/utils/currency";
 import { getAccountTypeLabel } from "@/lib/utils/accounts";
 import type { AccountBalanceHistory } from "@/lib/queries/insights";
+
+function SparklineTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: { date: string; balance: number } }> }) {
+  if (!active || !payload?.length) return null;
+  const { date, balance } = payload[0].payload;
+  return (
+    <div className="rounded-md border bg-popover px-2.5 py-1.5 text-xs shadow-md">
+      <p className="text-muted-foreground">{date}</p>
+      <p className="font-semibold tabular-nums">{formatCurrency(balance)}</p>
+    </div>
+  );
+}
 
 interface Props {
   account: AccountBalanceHistory;
@@ -67,6 +78,7 @@ export function AccountBalanceCard({ account }: Props) {
         {hasHistory ? (
           <ResponsiveContainer width="100%" height={60}>
             <LineChart data={account.snapshots}>
+              <Tooltip content={<SparklineTooltip />} />
               <Line
                 type="monotone"
                 dataKey="balance"
@@ -81,7 +93,7 @@ export function AccountBalanceCard({ account }: Props) {
           <div className="h-[60px] flex items-center justify-center">
             <p className="text-xs text-muted-foreground">
               {account.isManual
-                ? "Use ↻ to record history"
+                ? "Use ↻ to record at least 2 values to see a trend"
                 : "No data in selected range"}
             </p>
           </div>

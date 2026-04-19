@@ -9,9 +9,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Info } from "lucide-react";
 import { getAccountTypeLabel, MANUAL_ACCOUNT_TYPES } from "@/lib/utils/accounts";
 import type { ManualAccountWithGroup } from "@/lib/queries/manual-accounts";
 
@@ -19,12 +26,14 @@ interface ManualAccountDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   account?: ManualAccountWithGroup;
+  latestSnapshotDate?: string;
 }
 
 export function ManualAccountDialog({
   open,
   onOpenChange,
   account,
+  latestSnapshotDate,
 }: ManualAccountDialogProps) {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -118,7 +127,26 @@ export function ManualAccountDialog({
             </select>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="account-balance">Balance (NZD)</Label>
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="account-balance">Balance (NZD)</Label>
+              {account && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-64">
+                      <p>
+                        Corrects the current balance.
+                        {latestSnapshotDate
+                          ? ` The snapshot recorded on ${latestSnapshotDate} will also be updated to match.`
+                          : " If you have recorded value history, the most recent snapshot will also be updated to match."}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
             <Input
               id="account-balance"
               type="number"

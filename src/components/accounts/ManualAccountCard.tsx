@@ -42,9 +42,10 @@ function AccountTypeIcon({ type }: { type: string }) {
 
 interface ManualAccountCardProps {
   account: ManualAccountWithGroup;
+  latestSnapshotDate?: string;
 }
 
-export function ManualAccountCard({ account }: ManualAccountCardProps) {
+export function ManualAccountCard({ account, latestSnapshotDate }: ManualAccountCardProps) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
   const [updateOpen, setUpdateOpen] = useState(false);
@@ -136,6 +137,7 @@ export function ManualAccountCard({ account }: ManualAccountCardProps) {
         open={editOpen}
         onOpenChange={setEditOpen}
         account={account}
+        latestSnapshotDate={latestSnapshotDate}
       />
 
       <UpdateValueDialog

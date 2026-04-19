@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { manualAccounts, manualAccountSnapshots } from "@/lib/db/schema";
-import { eq, asc, gte, sql } from "drizzle-orm";
+import { and, eq, asc, gte, max, sql } from "drizzle-orm";
 import { getAccountGroup } from "@/lib/utils/accounts";
 import { toNumber } from "@/lib/utils/currency";
 import type { AccountGroup } from "@/lib/utils/accounts";
@@ -33,12 +33,32 @@ export async function updateManualAccount(
   balance: string,
   notes?: string
 ): Promise<ManualAccount | null> {
-  const [row] = await db
-    .update(manualAccounts)
-    .set({ name, type, balance, notes: notes ?? null, updatedAt: new Date() })
-    .where(eq(manualAccounts.id, id))
-    .returning();
-  return row ?? null;
+  return db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(manualAccounts)
+      .set({ name, type, balance, notes: notes ?? null, updatedAt: new Date() })
+      .where(eq(manualAccounts.id, id))
+      .returning();
+
+    const [{ latestDate }] = await tx
+      .select({ latestDate: max(manualAccountSnapshots.snapshotDate) })
+      .from(manualAccountSnapshots)
+      .where(eq(manualAccountSnapshots.manualAccountId, id));
+
+    if (latestDate) {
+      await tx
+        .update(manualAccountSnapshots)
+        .set({ balance })
+        .where(
+          and(
+            eq(manualAccountSnapshots.manualAccountId, id),
+            eq(manualAccountSnapshots.snapshotDate, latestDate)
+          )
+        );
+    }
+
+    return row ?? null;
+  });
 }
 
 export async function deleteManualAccount(id: number): Promise<void> {
@@ -50,13 +70,27 @@ export async function addManualAccountSnapshot(
   balance: string,
   snapshotDate: string
 ): Promise<void> {
-  await db
-    .insert(manualAccountSnapshots)
-    .values({ manualAccountId: id, balance, snapshotDate })
-    .onConflictDoUpdate({
-      target: [manualAccountSnapshots.manualAccountId, manualAccountSnapshots.snapshotDate],
-      set: { balance },
-    });
+  await db.transaction(async (tx) => {
+    await tx
+      .insert(manualAccountSnapshots)
+      .values({ manualAccountId: id, balance, snapshotDate })
+      .onConflictDoUpdate({
+        target: [manualAccountSnapshots.manualAccountId, manualAccountSnapshots.snapshotDate],
+        set: { balance },
+      });
+
+    const [{ latestDate }] = await tx
+      .select({ latestDate: max(manualAccountSnapshots.snapshotDate) })
+      .from(manualAccountSnapshots)
+      .where(eq(manualAccountSnapshots.manualAccountId, id));
+
+    if (!latestDate || snapshotDate >= latestDate) {
+      await tx
+        .update(manualAccounts)
+        .set({ balance, updatedAt: new Date() })
+        .where(eq(manualAccounts.id, id));
+    }
+  });
 }
 
 export async function getManualAccountSnapshots(
@@ -76,6 +110,19 @@ export async function getManualAccountSnapshots(
     )
     .orderBy(asc(manualAccountSnapshots.snapshotDate));
   return rows.map((r) => ({ date: r.date, balance: toNumber(r.balance) }));
+}
+
+export async function getLatestManualAccountSnapshotDates(): Promise<Record<number, string>> {
+  const rows = await db
+    .select({
+      manualAccountId: manualAccountSnapshots.manualAccountId,
+      latestDate: max(manualAccountSnapshots.snapshotDate),
+    })
+    .from(manualAccountSnapshots)
+    .groupBy(manualAccountSnapshots.manualAccountId);
+  return Object.fromEntries(
+    rows.filter((r) => r.latestDate).map((r) => [r.manualAccountId, r.latestDate!])
+  );
 }
 
 export async function getAllManualAccountSnapshotsSince(
