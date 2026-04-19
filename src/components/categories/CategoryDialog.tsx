@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { HexColorPicker } from "react-colorful";
 import {
   Dialog,
   DialogContent,
@@ -9,16 +10,11 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Category } from "@/lib/queries/categories";
-
-const PRESET_COLORS = [
-  "#e0af68", "#9ece6a", "#7aa2f7", "#bb9af7",
-  "#ff9e64", "#f7768e", "#73daca", "#a9b1d6",
-  "#fc7b7b", "#38bdae", "#e0e0e0", "#565f89",
-];
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
@@ -31,7 +27,7 @@ interface CategoryDialogProps {
 export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogProps) {
   const router = useRouter();
   const [name, setName] = useState("");
-  const [color, setColor] = useState(PRESET_COLORS[0]);
+  const [color, setColor] = useState("#e0af68");
   const [emoji, setEmoji] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +35,7 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
   useEffect(() => {
     if (open) {
       setName(category?.name ?? "");
-      setColor(category?.color ?? PRESET_COLORS[0]);
+      setColor(category?.color ?? "#e0af68");
       setEmoji(category?.emoji ?? "");
       setError(null);
     }
@@ -123,35 +119,26 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
 
           <div className="space-y-1.5">
             <Label htmlFor="cat-color-hex">Color</Label>
-            <div className="flex flex-wrap gap-2">
-              {PRESET_COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setColor(c)}
-                  className={`w-7 h-7 rounded-full border-2 transition-all ${
-                    color === c ? "border-foreground scale-110" : "border-transparent"
-                  }`}
-                  style={{ backgroundColor: c }}
-                  aria-label={`Select color ${c}`}
-                  aria-pressed={color === c}
+            <div className="flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger
+                  className="w-8 h-8 rounded-full border border-border shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+                  style={{ backgroundColor: colorValid ? color : "#888" }}
+                  aria-label="Open color picker"
                 />
-              ))}
-            </div>
-            <div className="flex items-center gap-2 mt-1">
-              <div
-                className="w-7 h-7 rounded-full border border-border shrink-0"
-                style={{ backgroundColor: colorValid ? color : "#888" }}
-              />
-              <Input
-                id="cat-color-hex"
-                placeholder="#e0af68"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                className="font-mono w-32"
-                maxLength={7}
-                aria-invalid={!colorValid}
-              />
+                <PopoverContent className="w-auto p-3 space-y-2">
+                  <HexColorPicker color={colorValid ? color : "#888888"} onChange={setColor} />
+                  <Input
+                    id="cat-color-hex"
+                    value={color}
+                    onChange={(e) => setColor(e.target.value)}
+                    className="font-mono h-8 text-sm"
+                    maxLength={7}
+                    aria-invalid={!colorValid}
+                  />
+                </PopoverContent>
+              </Popover>
+              <span className="text-sm font-mono text-muted-foreground">{color}</span>
             </div>
           </div>
 
