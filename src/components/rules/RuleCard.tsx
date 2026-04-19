@@ -14,9 +14,10 @@ import type { RuleCondition } from "@/lib/utils/rules";
 
 interface RuleCardProps {
   rule: TransactionRule;
+  customCategories?: Array<{ name: string }>;
 }
 
-export function RuleCard({ rule }: RuleCardProps) {
+export function RuleCard({ rule, customCategories }: RuleCardProps) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
 
@@ -113,7 +114,7 @@ export function RuleCard({ rule }: RuleCardProps) {
         </div>
       </div>
 
-      <RuleDialog open={editOpen} onOpenChange={setEditOpen} rule={rule} />
+      <RuleDialog open={editOpen} onOpenChange={setEditOpen} rule={rule} customCategories={customCategories} />
     </>
   );
 }

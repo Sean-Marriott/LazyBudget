@@ -8,16 +8,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatMonthLabel } from "@/lib/utils/dates";
 import { EXPENSE_CATEGORIES } from "@/lib/utils/categories";
+import type { Category } from "@/lib/queries/categories";
+
+const BUILT_IN_CATEGORY_SET = new Set([...EXPENSE_CATEGORIES, "Income", "Transfer"]);
 
 interface TransactionFiltersProps {
   month: Date;
   category?: string;
   search?: string;
+  customCategories?: Pick<Category, "name">[];
 }
 
-export function TransactionFilters({ month, category, search }: TransactionFiltersProps) {
+export function TransactionFilters({ month, category, search, customCategories }: TransactionFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const filteredCustomCategories = (customCategories ?? []).filter(
+    (c) => !BUILT_IN_CATEGORY_SET.has(c.name)
+  );
   const [searchValue, setSearchValue] = useState(search ?? "");
 
   // Sync local search state when URL param changes (e.g. month navigation)
@@ -90,13 +97,24 @@ export function TransactionFilters({ month, category, search }: TransactionFilte
         className="flex h-9 w-full sm:w-auto rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
         <option value="">All categories</option>
-        {EXPENSE_CATEGORIES.map((c) => (
-          <option key={c} value={c}>
-            {c}
-          </option>
-        ))}
-        <option value="Income">Income</option>
-        <option value="Transfer">Transfer</option>
+        <optgroup label="Built-in">
+          {EXPENSE_CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+          <option value="Income">Income</option>
+          <option value="Transfer">Transfer</option>
+        </optgroup>
+        {filteredCustomCategories.length > 0 && (
+          <optgroup label="Custom">
+            {filteredCustomCategories.map((c) => (
+              <option key={c.name} value={c.name}>
+                {c.name}
+              </option>
+            ))}
+          </optgroup>
+        )}
       </select>
 
       {/* Search input */}

@@ -171,6 +171,17 @@ export const transactionRules = pgTable("transaction_rules", {
 });
 
 // ---------------------------------------------------------------------------
+// Custom categories — user-defined transaction categories
+// ---------------------------------------------------------------------------
+export const categories = pgTable("categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  color: text("color").notNull(), // hex e.g. "#e0af68"
+  emoji: text("emoji"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
 // Sync log — history of sync runs for debugging
 // ---------------------------------------------------------------------------
 export const syncLog = pgTable("sync_log", {

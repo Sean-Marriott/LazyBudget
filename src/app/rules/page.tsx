@@ -1,15 +1,17 @@
 import { TopBar } from "@/components/layout/TopBar";
 import { RulesSection } from "@/components/rules/RulesSection";
 import { getAllRules } from "@/lib/queries/rules";
+import { getAllCategories } from "@/lib/queries/categories";
 
 export const dynamic = "force-dynamic";
 
 export default async function RulesPage() {
   let rules: Awaited<ReturnType<typeof getAllRules>> = [];
+  let customCats: Awaited<ReturnType<typeof getAllCategories>> = [];
   let dbError = false;
 
   try {
-    rules = await getAllRules();
+    [rules, customCats] = await Promise.all([getAllRules(), getAllCategories()]);
   } catch {
     dbError = true;
   }
@@ -24,7 +26,7 @@ export default async function RulesPage() {
             <code>npm run db:push</code> to initialise the database.
           </div>
         )}
-        {!dbError && <RulesSection rules={rules} />}
+        {!dbError && <RulesSection rules={rules} customCategories={customCats} />}
       </main>
     </>
   );
