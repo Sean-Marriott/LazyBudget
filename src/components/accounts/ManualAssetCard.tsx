@@ -2,21 +2,24 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Package, Pencil, Trash2 } from "lucide-react";
+import { Package, Pencil, Trash2, RefreshCw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, toNumber } from "@/lib/utils/currency";
 import { ManualAssetDialog } from "@/components/accounts/ManualAssetDialog";
+import { UpdateValueDialog } from "@/components/accounts/UpdateValueDialog";
 import type { ManualAsset } from "@/lib/queries/manual-assets";
 
 interface ManualAssetCardProps {
   asset: ManualAsset;
+  latestSnapshotDate?: string;
 }
 
-export function ManualAssetCard({ asset }: ManualAssetCardProps) {
+export function ManualAssetCard({ asset, latestSnapshotDate }: ManualAssetCardProps) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
+  const [updateOpen, setUpdateOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   async function handleDelete() {
@@ -71,6 +74,14 @@ export function ManualAssetCard({ asset }: ManualAssetCardProps) {
               <Button
                 variant="ghost"
                 size="icon-sm"
+                onClick={() => setUpdateOpen(true)}
+                aria-label="Update value"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
                 onClick={() => setEditOpen(true)}
                 aria-label="Edit"
               >
@@ -95,6 +106,16 @@ export function ManualAssetCard({ asset }: ManualAssetCardProps) {
         open={editOpen}
         onOpenChange={setEditOpen}
         asset={asset}
+        latestSnapshotDate={latestSnapshotDate}
+      />
+
+      <UpdateValueDialog
+        open={updateOpen}
+        onOpenChange={setUpdateOpen}
+        entityId={asset.id}
+        entityName={asset.name}
+        entityType="asset"
+        currentValue={toNumber(asset.value)}
       />
     </>
   );

@@ -114,17 +114,27 @@ npm run test:watch   # watch mode
 | `manual_assets` | User-managed offline assets (cars, property, etc.) with emoji, value, and notes |
 | `manual_accounts` | User-managed accounts not connected to Akahu (foreign banks, cash, etc.) |
 | `transaction_rules` | Auto-categorisation rules; `conditions` is JSONB array of `{field, operator, value}`; `conditionCombinator` is "AND" \| "OR" |
+| `manual_account_snapshots` | Historical balance entries for manual accounts — written via "Update Value" action |
+| `manual_asset_snapshots` | Historical value entries for manual assets — written via "Update Value" action |
+
+**Custom categories:** `src/lib/queries/categories.ts` provides CRUD for the `categories` table. Custom categories can be assigned to transactions (via `userCategory`) and override Akahu's built-in categorisation. Each has a hex color and optional emoji. The `/categories` page renders them via `CategoryCard` and `CategoryDialog` (which uses `react-colorful` for color picking). Custom category colors are threaded through transaction and insight charts via a `customColorMap`.
+
+**Manual value history:** Manual accounts and assets support historical snapshots via `manual_account_snapshots` and `manual_asset_snapshots` tables. Snapshots are recorded explicitly via an "Update Value" dialog (↻ button on each card) — distinct from the Edit dialog which is for correcting mistakes. API routes: `POST /api/manual-accounts/[id]/snapshots` and `POST /api/manual-assets/[id]/snapshots`. These power per-account sparklines and net worth history on the Insights page.
+
+**Insights:** `src/lib/queries/insights.ts` has four query functions — `getNetWorthHistory`, `getAccountBalanceHistories`, `getMonthlyTrends`, `getMonthlyCategoryTrends`. Net worth history forward-fills manual snapshot values to align with daily Akahu snapshots. The `/insights` page has a `?range=3m|6m|1y|all` URL param controlling the time window. A compact preview (90-day net worth + 6-month income/spending) also appears on the dashboard.
+
+**Note on `db:push` from host:** The `.env.local` `DATABASE_URL` uses `postgres` (Docker network hostname). Running `npm run db:push` from the host requires overriding: `DATABASE_URL=postgresql://lazybudget:lazybudget@localhost:5433/lazybudget npm run db:push`.
 
 ## Pages built
 
 | Route | Status |
 |---|---|
-| `/dashboard` | ✅ Net worth, accounts summary, recent transactions, month summary |
-| `/accounts` | ✅ All accounts grouped by asset/liability with balances; Manual Accounts and Other Assets sections for manual entries |
+| `/dashboard` | ✅ Net worth, accounts summary, recent transactions, month summary, compact insights preview |
+| `/accounts` | ✅ All accounts grouped by asset/liability with balances; Manual Accounts and Other Assets sections with "Update Value" history tracking |
 | `/transactions` | ✅ Transaction browser with month/category/search filters; click row to edit |
 | `/rules` | ✅ Transaction rules with AND/OR multi-condition support; auto-applies on sync |
-| `/budget` | Stub |
-| `/insights` | Stub |
-| `/goals` | Stub |
+| `/categories` | ✅ Custom category CRUD with color picker and emoji |
+| `/insights` | ✅ Net worth trend, per-account sparklines, monthly income/spending, top-5 category trends; toggleable time range |
 | `/cashflow` | ✅ Income vs spending Sankey diagram with month selector |
-| `/net-worth` | Stub |
+| `/budget` | Stub |
+| `/goals` | Stub |

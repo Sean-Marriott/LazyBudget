@@ -5,8 +5,8 @@ import { AccountCard } from "@/components/accounts/AccountCard";
 import { OtherAssetsSection } from "@/components/accounts/OtherAssetsSection";
 import { ManualAccountsSection } from "@/components/accounts/ManualAccountsSection";
 import { getAllAccounts, getNetWorthSummary } from "@/lib/queries/accounts";
-import { getAllManualAssets } from "@/lib/queries/manual-assets";
-import { getAllManualAccounts } from "@/lib/queries/manual-accounts";
+import { getAllManualAssets, getLatestManualAssetSnapshotDates } from "@/lib/queries/manual-assets";
+import { getAllManualAccounts, getLatestManualAccountSnapshotDates } from "@/lib/queries/manual-accounts";
 import { formatCurrency } from "@/lib/utils/currency";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -15,14 +15,18 @@ export default async function AccountsPage() {
   let manualAssets: Awaited<ReturnType<typeof getAllManualAssets>> = [];
   let manualAccounts: Awaited<ReturnType<typeof getAllManualAccounts>> = [];
   let summary = { assets: 0, liabilities: 0, netWorth: 0 };
+  let latestAccountSnapshotDates: Record<number, string> = {};
+  let latestAssetSnapshotDates: Record<number, string> = {};
   let dbError = false;
 
   try {
-    [accounts, manualAssets, manualAccounts, summary] = await Promise.all([
+    [accounts, manualAssets, manualAccounts, summary, latestAccountSnapshotDates, latestAssetSnapshotDates] = await Promise.all([
       getAllAccounts(),
       getAllManualAssets(),
       getAllManualAccounts(),
       getNetWorthSummary(),
+      getLatestManualAccountSnapshotDates(),
+      getLatestManualAssetSnapshotDates(),
     ]);
   } catch {
     dbError = true;
@@ -78,9 +82,9 @@ export default async function AccountsPage() {
               </div>
             )}
 
-            <ManualAccountsSection accounts={manualAccounts} />
+            <ManualAccountsSection accounts={manualAccounts} latestSnapshotDates={latestAccountSnapshotDates} />
 
-            <OtherAssetsSection assets={manualAssets} />
+            <OtherAssetsSection assets={manualAssets} latestSnapshotDates={latestAssetSnapshotDates} />
 
             {byGroup.asset.length > 0 && (
               <section>

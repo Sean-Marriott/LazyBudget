@@ -9,9 +9,10 @@ import type { ManualAccountWithGroup } from "@/lib/queries/manual-accounts";
 
 interface ManualAccountsSectionProps {
   accounts: ManualAccountWithGroup[];
+  latestSnapshotDates: Record<number, string>;
 }
 
-export function ManualAccountsSection({ accounts }: ManualAccountsSectionProps) {
+export function ManualAccountsSection({ accounts, latestSnapshotDates }: ManualAccountsSectionProps) {
   const [addOpen, setAddOpen] = useState(false);
 
   return (
@@ -28,7 +29,7 @@ export function ManualAccountsSection({ accounts }: ManualAccountsSectionProps) 
       {accounts.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {accounts.map((a) => (
-            <ManualAccountCard key={a.id} account={a} />
+            <ManualAccountCard key={a.id} account={a} latestSnapshotDate={latestSnapshotDates[a.id]} />
           ))}
         </div>
       )}

@@ -9,21 +9,30 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Info } from "lucide-react";
 import type { ManualAsset } from "@/lib/queries/manual-assets";
 
 interface ManualAssetDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   asset?: ManualAsset;
+  latestSnapshotDate?: string;
 }
 
 export function ManualAssetDialog({
   open,
   onOpenChange,
   asset,
+  latestSnapshotDate,
 }: ManualAssetDialogProps) {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -114,7 +123,26 @@ export function ManualAssetDialog({
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="asset-value">Value (NZD)</Label>
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="asset-value">Value (NZD)</Label>
+              {asset && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-64">
+                      <p>
+                        Corrects the current value.
+                        {latestSnapshotDate
+                          ? ` The snapshot recorded on ${latestSnapshotDate} will also be updated to match.`
+                          : " If you have recorded value history, the most recent snapshot will also be updated to match."}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
             <Input
               id="asset-value"
               type="number"
