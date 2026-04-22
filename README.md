@@ -16,6 +16,7 @@ A personal finance tracking app built with Next.js 16, TypeScript, PostgreSQL, a
 - **Manual Accounts** - Track accounts at banks not connected to Akahu with balance history over time
 - **Budget Management** - Create and track monthly budgets across categories *(coming soon)*
 - **Financial Goals** - Set and track progress toward your savings goals *(coming soon)*
+- **Multi-User Support** - User accounts with individual Akahu API tokens *(planned)*
 - **Client-Side Sync Control** - Manual sync button with cooldown enforcement
 
 ## Tech Stack
