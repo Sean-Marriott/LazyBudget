@@ -171,6 +171,8 @@ export function CashflowSankey({ income, spending, height = 300, compact = false
             fontSize: "12px",
             color: "#c0caf5",
           }}
+          labelStyle={{ color: "#c0caf5" }}
+          itemStyle={{ color: "#a9b1d6" }}
         />
       </Sankey>
     </ResponsiveContainer>
