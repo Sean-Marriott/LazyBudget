@@ -45,7 +45,7 @@ export async function CashflowCard() {
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
-        <CashflowSankey income={income} spending={spending} height={220} compact />
+        <CashflowSankey income={income} spending={spending} height={260} />
       </CardContent>
     </Card>
   );
