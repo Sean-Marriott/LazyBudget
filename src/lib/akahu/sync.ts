@@ -6,6 +6,12 @@ import { accounts, transactions, appSettings, balanceSnapshots, syncLog } from "
 import { eq, sql } from "drizzle-orm";
 import { mapAkahuCategoryToGroup } from "../utils/categories";
 import { applyRulesToTransactions } from "@/lib/queries/rules";
+import {
+  getMigratedId,
+  migrateAccount,
+  migrateTransactionOverrides,
+  markMissingAccountsInactive,
+} from "./migration";
 
 function isEnriched(tx: Transaction): tx is EnrichedTransaction {
   return "merchant" in tx || "category" in tx;
@@ -82,7 +88,16 @@ export async function runSync(mode: "incremental" | "full" = "incremental"): Pro
           })
           .onConflictDoNothing();
       }
+
+      // Open banking migration: merge the replaced classic account into this one
+      const accMigratedFrom = getMigratedId(acc);
+      if (accMigratedFrom && accMigratedFrom !== acc._id) {
+        await migrateAccount(accMigratedFrom, acc._id);
+      }
     }
+
+    // Deactivate accounts Akahu no longer returns (revoked or deselected)
+    await markMissingAccountsInactive(akahuAccounts.map((acc) => acc._id));
 
     // -------------------------------------------------------------------
     // Pass 2: Sync transactions
@@ -171,6 +186,13 @@ export async function runSync(mode: "incremental" | "full" = "incremental"): Pro
               // DO NOT update: userCategory, notes, isTransfer, isHidden
             },
           });
+
+        // Open banking migration: carry user overrides from the replaced
+        // transaction onto this copy, then drop the old row
+        const txMigratedFrom = getMigratedId(tx);
+        if (txMigratedFrom && txMigratedFrom !== tx._id) {
+          await migrateTransactionOverrides(txMigratedFrom, tx._id);
+        }
 
         txCount++;
       }

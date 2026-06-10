@@ -32,6 +32,8 @@ docker compose down     # Stop PostgreSQL
 3. `npm run db:push` to create all tables
 4. `npm run dev`, then click **Sync** in the top bar
 
+Upgrading a bank connection to official open banking at my.akahu.nz is safe — the next sync merges the migrated account/transaction records (see "Open banking migration" below).
+
 ## Architecture
 
 **Stack:** Next.js 16 App Router · TypeScript · PostgreSQL · Drizzle ORM · Tailwind CSS · shadcn/ui · Recharts
@@ -52,6 +54,8 @@ docker compose down     # Stop PostgreSQL
 **Akahu client:** `getAkahuClient()` and `getUserToken()` in `src/lib/akahu/client.ts` are lazy getters — they throw at runtime if tokens are missing, but don't fail at build time.
 
 **Sync strategy:** Incremental by default (fetches from `last_sync_at - 2 days`). User overrides (`userCategory`, `notes`, `isTransfer`, `isHidden`) are never overwritten by sync — the upsert explicitly excludes those columns. A 1-hour cooldown is enforced via `canSync()`.
+
+**Open banking migration:** When a bank connection is upgraded from classic to official open banking (at my.akahu.nz), Akahu issues new account ids and copies up to 1 year of transactions with new ids, referencing each replaced record's id in a `_migrated` field. `src/lib/akahu/migration.ts` handles this during sync: `migrateAccount()` re-points balance snapshots, old transactions, and goals to the new account id and deletes the old row; `migrateTransactionOverrides()` carries user overrides onto the migrated copy and deletes the old transaction; `markMissingAccountsInactive()` deactivates accounts Akahu no longer returns. Upgrading a connection is safe — the next sync merges the migrated records.
 
 **Account type → net worth grouping:** `getAccountGroup()` in `src/lib/utils/accounts.ts` maps all 11 Akahu account types to `asset | liability | excluded`. REWARDS accounts are excluded from NZD net worth totals.
 
@@ -93,6 +97,7 @@ npm run test:watch   # watch mode
 | `src/app/api/rules/[id]/route.test.ts` | PATCH/DELETE `/api/rules/[id]` — id validation, field validation, update logic, deletion |
 | `src/app/api/transactions/[id]/route.test.ts` | PATCH `/api/transactions/[id]` |
 | `src/lib/queries/rules.test.ts` | `applyRulesToTransactions` — matching, AND/OR combinators, first-match-wins |
+| `src/lib/akahu/migration.test.ts` | Open banking migration helpers — `getMigratedId`, account/transaction merging, inactive marking |
 | `src/lib/queries/transactions.test.ts` | Query helpers for transactions |
 
 **Conventions:**
