@@ -1,12 +1,19 @@
 import { NextResponse } from "next/server";
+import { getSessionUser } from "@/lib/session";
 import { getAllManualAssets, createManualAsset } from "@/lib/queries/manual-assets";
 
 export async function GET() {
-  const assets = await getAllManualAssets();
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const assets = await getAllManualAssets(user.id);
   return NextResponse.json(assets);
 }
 
 export async function POST(request: Request) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   let body: unknown;
   try {
     body = await request.json();
@@ -35,6 +42,7 @@ export async function POST(request: Request) {
   }
 
   const asset = await createManualAsset(
+    user.id,
     name.trim(),
     numValue.toFixed(2),
     typeof notes === "string" ? notes.trim() || undefined : undefined,

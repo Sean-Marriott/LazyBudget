@@ -12,6 +12,9 @@ import { accounts, transactions, balanceSnapshots, goals } from "../db/schema";
 // a `_migrated` field on the new record. The helpers here merge those new
 // records with our existing rows so balances, history, and user overrides
 // survive the switch.
+//
+// All helpers are scoped to a userId so one user's sync can never touch
+// another user's rows.
 // ---------------------------------------------------------------------------
 
 // The akahu SDK (2.5.1) doesn't declare `_migrated`, and Akahu's docs don't
@@ -39,11 +42,15 @@ export function getMigratedId(record: unknown): string | null {
  * account row. The new account must already exist. Returns false if the old
  * account isn't in our DB (nothing to do).
  */
-export async function migrateAccount(oldId: string, newId: string): Promise<boolean> {
+export async function migrateAccount(
+  userId: string,
+  oldId: string,
+  newId: string
+): Promise<boolean> {
   const existing = await db
     .select({ id: accounts.id })
     .from(accounts)
-    .where(eq(accounts.id, oldId))
+    .where(and(eq(accounts.userId, userId), eq(accounts.id, oldId)))
     .limit(1);
   if (existing.length === 0) return false;
 
@@ -73,7 +80,9 @@ export async function migrateAccount(oldId: string, newId: string): Promise<bool
 
   await db.update(goals).set({ accountId: newId }).where(eq(goals.accountId, oldId));
 
-  await db.delete(accounts).where(eq(accounts.id, oldId));
+  await db
+    .delete(accounts)
+    .where(and(eq(accounts.userId, userId), eq(accounts.id, oldId)));
   return true;
 }
 
@@ -85,6 +94,7 @@ export async function migrateAccount(oldId: string, newId: string): Promise<bool
  * in our DB.
  */
 export async function migrateTransactionOverrides(
+  userId: string,
   oldId: string,
   newId: string
 ): Promise<boolean> {
@@ -96,7 +106,7 @@ export async function migrateTransactionOverrides(
       isHidden: transactions.isHidden,
     })
     .from(transactions)
-    .where(eq(transactions.id, oldId))
+    .where(and(eq(transactions.userId, userId), eq(transactions.id, oldId)))
     .limit(1);
   if (!old) return false;
 
@@ -108,22 +118,33 @@ export async function migrateTransactionOverrides(
       isTransfer: sql`${transactions.isTransfer} or ${old.isTransfer ?? false}`,
       isHidden: sql`${transactions.isHidden} or ${old.isHidden ?? false}`,
     })
-    .where(eq(transactions.id, newId));
+    .where(and(eq(transactions.userId, userId), eq(transactions.id, newId)));
 
-  await db.delete(transactions).where(eq(transactions.id, oldId));
+  await db
+    .delete(transactions)
+    .where(and(eq(transactions.userId, userId), eq(transactions.id, oldId)));
   return true;
 }
 
 /**
- * Deactivate Akahu accounts that no longer come back from accounts.list —
- * e.g. a classic connection revoked after migration, or accounts deselected
- * during re-authorisation. Skipped when the list is empty so a bad API
- * response can't wipe out every account.
+ * Deactivate the user's Akahu accounts that no longer come back from
+ * accounts.list — e.g. a classic connection revoked after migration, or
+ * accounts deselected during re-authorisation. Skipped when the list is empty
+ * so a bad API response can't wipe out every account.
  */
-export async function markMissingAccountsInactive(activeIds: string[]): Promise<void> {
+export async function markMissingAccountsInactive(
+  userId: string,
+  activeIds: string[]
+): Promise<void> {
   if (activeIds.length === 0) return;
   await db
     .update(accounts)
     .set({ status: "INACTIVE", updatedAt: sql`now()` })
-    .where(and(notInArray(accounts.id, activeIds), eq(accounts.status, "ACTIVE")));
+    .where(
+      and(
+        eq(accounts.userId, userId),
+        notInArray(accounts.id, activeIds),
+        eq(accounts.status, "ACTIVE")
+      )
+    );
 }

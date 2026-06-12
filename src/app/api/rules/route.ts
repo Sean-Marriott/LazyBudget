@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getSessionUser } from "@/lib/session";
 import { getAllRules, createRule } from "@/lib/queries/rules";
 import { getAllCategories } from "@/lib/queries/categories";
 import { RULE_CONDITION_FIELDS, RULE_CONDITION_OPERATORS, RULE_CONDITION_COMBINATORS } from "@/lib/utils/rules";
@@ -23,11 +24,17 @@ function validateConditions(conditions: unknown): conditions is RuleCondition[] 
 }
 
 export async function GET() {
-  const rules = await getAllRules();
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const rules = await getAllRules(user.id);
   return NextResponse.json(rules);
 }
 
 export async function POST(request: Request) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   let body: unknown;
   try {
     body = await request.json();
@@ -59,7 +66,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "invalid setCategory" }, { status: 400 });
     }
     if (!BUILTIN_CATEGORIES.has(setCategory)) {
-      const customCats = await getAllCategories();
+      const customCats = await getAllCategories(user.id);
       const customNames = new Set(customCats.map((c) => c.name));
       if (!customNames.has(setCategory)) {
         return NextResponse.json({ error: "invalid setCategory" }, { status: 400 });
@@ -89,7 +96,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "at least one action (setCategory, setNotes, setTransfer, setHidden) is required" }, { status: 400 });
   }
 
-  const rule = await createRule({
+  const rule = await createRule(user.id, {
     name: name.trim(),
     conditionCombinator: (conditionCombinator as string | undefined) ?? "AND",
     conditions: (conditions as RuleCondition[]).map((c) => ({ ...c, value: c.value.trim() })),

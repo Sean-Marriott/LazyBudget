@@ -12,14 +12,14 @@ import { formatMonthLabel } from "@/lib/utils/dates";
  *
  * @returns A React element: a Card with a month-labeled header and a CashflowSankey chart showing the current month's income and spending.
  */
-export async function CashflowCard() {
+export async function CashflowCard({ userId }: { userId: string }) {
   const now = new Date();
   let income: number;
   let spending: Awaited<ReturnType<typeof getMonthlySpendingByCategory>>;
   try {
     [{ income }, spending] = await Promise.all([
-      getMonthSummary(now),
-      getMonthlySpendingByCategory(now),
+      getMonthSummary(userId, now),
+      getMonthlySpendingByCategory(userId, now),
     ]);
   } catch (err) {
     console.error("[CashflowCard] Failed to load cashflow data:", err);

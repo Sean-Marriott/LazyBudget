@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
+import { getSessionUser } from "@/lib/session";
 import { updateTransaction } from "@/lib/queries/transactions";
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   const { id } = await params;
   if (!id || typeof id !== "string" || !id.trim()) {
     return NextResponse.json({ error: "invalid id" }, { status: 400 });
@@ -60,6 +64,6 @@ export async function PATCH(
     return NextResponse.json({ error: "no valid fields provided" }, { status: 400 });
   }
 
-  await updateTransaction(id.trim(), data);
+  await updateTransaction(user.id, id.trim(), data);
   return NextResponse.json({ ok: true });
 }

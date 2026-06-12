@@ -1,20 +1,35 @@
 import { AkahuClient } from "akahu";
+import { eq } from "drizzle-orm";
+import { db } from "../db";
+import { userSettings } from "../db/schema";
+import { decrypt } from "../crypto";
 
-// Lazily instantiate so the module can be imported at build time
-// without needing valid tokens (which only exist at runtime).
-let _client: AkahuClient | null = null;
-
-export function getAkahuClient(): AkahuClient {
-  if (!_client) {
-    const appToken = process.env.AKAHU_APP_TOKEN;
-    if (!appToken) throw new Error("AKAHU_APP_TOKEN is not set in .env.local");
-    _client = new AkahuClient({ appToken });
+export class AkahuNotConfiguredError extends Error {
+  constructor() {
+    super("Akahu tokens are not configured — add them in Settings");
+    this.name = "AkahuNotConfiguredError";
   }
-  return _client;
 }
 
-export function getUserToken(): string {
-  const token = process.env.AKAHU_USER_TOKEN;
-  if (!token) throw new Error("AKAHU_USER_TOKEN is not set in .env.local");
-  return token;
+/**
+ * Loads the user's encrypted Akahu tokens from user_settings and returns a
+ * ready-to-use client. Throws AkahuNotConfiguredError if the user hasn't
+ * saved tokens yet.
+ */
+export async function getAkahuForUser(
+  userId: string
+): Promise<{ client: AkahuClient; userToken: string }> {
+  const [settings] = await db
+    .select()
+    .from(userSettings)
+    .where(eq(userSettings.userId, userId));
+
+  if (!settings?.akahuAppToken || !settings?.akahuUserToken) {
+    throw new AkahuNotConfiguredError();
+  }
+
+  return {
+    client: new AkahuClient({ appToken: decrypt(settings.akahuAppToken) }),
+    userToken: decrypt(settings.akahuUserToken),
+  };
 }

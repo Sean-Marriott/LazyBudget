@@ -1,6 +1,6 @@
 import { db } from "../db";
-import { accounts, balanceSnapshots } from "../db/schema";
-import { eq, desc } from "drizzle-orm";
+import { accounts } from "../db/schema";
+import { eq } from "drizzle-orm";
 import { getAccountGroup } from "../utils/accounts";
 import { toNumber } from "../utils/currency";
 import { getAllManualAssets } from "@/lib/queries/manual-assets";
@@ -10,10 +10,13 @@ export type AccountWithGroup = typeof accounts.$inferSelect & {
   group: "asset" | "liability" | "excluded";
 };
 
-export async function getAllAccounts(): Promise<AccountWithGroup[]> {
+export async function getAllAccounts(
+  userId: string
+): Promise<AccountWithGroup[]> {
   const rows = await db
     .select()
     .from(accounts)
+    .where(eq(accounts.userId, userId))
     .orderBy(accounts.connectionName, accounts.name);
 
   return rows.map((a) => ({
@@ -22,8 +25,8 @@ export async function getAllAccounts(): Promise<AccountWithGroup[]> {
   }));
 }
 
-export async function getNetWorthSummary() {
-  const allAccounts = await getAllAccounts();
+export async function getNetWorthSummary(userId: string) {
+  const allAccounts = await getAllAccounts(userId);
 
   let assets = 0;
   let liabilities = 0;
@@ -39,12 +42,12 @@ export async function getNetWorthSummary() {
     }
   }
 
-  const manualAssetRows = await getAllManualAssets();
+  const manualAssetRows = await getAllManualAssets(userId);
   for (const m of manualAssetRows) {
     assets += toNumber(m.value);
   }
 
-  const manualAccountRows = await getAllManualAccounts();
+  const manualAccountRows = await getAllManualAccounts(userId);
   for (const acc of manualAccountRows) {
     const bal = toNumber(acc.balance);
     if (acc.group === "asset") {

@@ -1,6 +1,6 @@
 import { db } from "../db";
 import { transactionRules, transactions } from "../db/schema";
-import { eq, asc, isNull } from "drizzle-orm";
+import { eq, and, asc, isNull } from "drizzle-orm";
 import { updateTransaction } from "./transactions";
 import type { RuleCondition } from "../utils/rules";
 
@@ -17,36 +17,52 @@ export type RuleInput = {
   setHidden?: boolean | null;
 };
 
-export async function getAllRules(): Promise<TransactionRule[]> {
-  return db.select().from(transactionRules).orderBy(asc(transactionRules.id));
+export async function getAllRules(userId: string): Promise<TransactionRule[]> {
+  return db
+    .select()
+    .from(transactionRules)
+    .where(eq(transactionRules.userId, userId))
+    .orderBy(asc(transactionRules.id));
 }
 
-export async function createRule(data: RuleInput): Promise<TransactionRule> {
-  const [rule] = await db.insert(transactionRules).values(data).returning();
+export async function createRule(
+  userId: string,
+  data: RuleInput
+): Promise<TransactionRule> {
+  const [rule] = await db
+    .insert(transactionRules)
+    .values({ ...data, userId })
+    .returning();
   return rule;
 }
 
 export async function updateRule(
+  userId: string,
   id: number,
   data: Partial<RuleInput>
 ): Promise<TransactionRule | null> {
   const [rule] = await db
     .update(transactionRules)
     .set(data)
-    .where(eq(transactionRules.id, id))
+    .where(and(eq(transactionRules.userId, userId), eq(transactionRules.id, id)))
     .returning();
   return rule ?? null;
 }
 
-export async function deleteRule(id: number): Promise<void> {
-  await db.delete(transactionRules).where(eq(transactionRules.id, id));
+export async function deleteRule(userId: string, id: number): Promise<void> {
+  await db
+    .delete(transactionRules)
+    .where(and(eq(transactionRules.userId, userId), eq(transactionRules.id, id)));
 }
 
-export async function getRuleById(id: number): Promise<TransactionRule | null> {
+export async function getRuleById(
+  userId: string,
+  id: number
+): Promise<TransactionRule | null> {
   const [rule] = await db
     .select()
     .from(transactionRules)
-    .where(eq(transactionRules.id, id));
+    .where(and(eq(transactionRules.userId, userId), eq(transactionRules.id, id)));
   return rule ?? null;
 }
 
@@ -81,11 +97,13 @@ function matchesRule(
   return rule.conditions.every((c) => matchesCondition(tx, c));
 }
 
-export async function applyRulesToTransactions(): Promise<number> {
+export async function applyRulesToTransactions(userId: string): Promise<number> {
   const rules = await db
     .select()
     .from(transactionRules)
-    .where(eq(transactionRules.enabled, true))
+    .where(
+      and(eq(transactionRules.userId, userId), eq(transactionRules.enabled, true))
+    )
     .orderBy(asc(transactionRules.id));
 
   if (rules.length === 0) return 0;
@@ -98,7 +116,9 @@ export async function applyRulesToTransactions(): Promise<number> {
       notes: transactions.notes,
     })
     .from(transactions)
-    .where(isNull(transactions.userCategory));
+    .where(
+      and(eq(transactions.userId, userId), isNull(transactions.userCategory))
+    );
 
   let applied = 0;
 
@@ -126,7 +146,7 @@ export async function applyRulesToTransactions(): Promise<number> {
         }
 
         if (Object.keys(update).length > 0) {
-          await updateTransaction(tx.id, update);
+          await updateTransaction(userId, tx.id, update);
           applied++;
         }
         break; // first match wins

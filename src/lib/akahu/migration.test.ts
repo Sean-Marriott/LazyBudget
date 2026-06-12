@@ -120,7 +120,7 @@ describe("migrateAccount", () => {
   it("re-points snapshots, transactions, and goals, then deletes the old account", async () => {
     dbState.selectResults.push([{ id: "acc_old" }]); // old account exists
 
-    const result = await migrateAccount("acc_old", "acc_new");
+    const result = await migrateAccount("user_1", "acc_old", "acc_new");
 
     expect(result).toBe(true);
 
@@ -131,8 +131,11 @@ describe("migrateAccount", () => {
     );
     expect((dbState.deletes[1].table as Record<string, string>).id).toBe("accounts.id");
     expect(dbState.deletes[1].where).toMatchObject({
-      op: "eq",
-      args: ["accounts.id", "acc_old"],
+      op: "and",
+      args: [
+        { op: "eq", args: ["accounts.userId", "user_1"] },
+        { op: "eq", args: ["accounts.id", "acc_old"] },
+      ],
     });
 
     // Snapshots, transactions, goals all re-pointed to the new id
@@ -145,7 +148,7 @@ describe("migrateAccount", () => {
   it("is a no-op when the old account is not in the DB", async () => {
     dbState.selectResults.push([]);
 
-    const result = await migrateAccount("acc_unknown", "acc_new");
+    const result = await migrateAccount("user_1", "acc_unknown", "acc_new");
 
     expect(result).toBe(false);
     expect(dbState.updates).toHaveLength(0);
@@ -162,13 +165,19 @@ describe("migrateTransactionOverrides", () => {
       { userCategory: "Groceries", notes: "weekly shop", isTransfer: false, isHidden: true },
     ]);
 
-    const result = await migrateTransactionOverrides("trans_old", "trans_new");
+    const result = await migrateTransactionOverrides("user_1", "trans_old", "trans_new");
 
     expect(result).toBe(true);
 
     expect(dbState.updates).toHaveLength(1);
     const { set, where } = dbState.updates[0];
-    expect(where).toMatchObject({ op: "eq", args: ["transactions.id", "trans_new"] });
+    expect(where).toMatchObject({
+      op: "and",
+      args: [
+        { op: "eq", args: ["transactions.userId", "user_1"] },
+        { op: "eq", args: ["transactions.id", "trans_new"] },
+      ],
+    });
     // Overrides are merged via SQL so values already set on the new row win
     expect(set.userCategory).toMatchObject({
       op: "sql",
@@ -189,15 +198,18 @@ describe("migrateTransactionOverrides", () => {
 
     expect(dbState.deletes).toHaveLength(1);
     expect(dbState.deletes[0].where).toMatchObject({
-      op: "eq",
-      args: ["transactions.id", "trans_old"],
+      op: "and",
+      args: [
+        { op: "eq", args: ["transactions.userId", "user_1"] },
+        { op: "eq", args: ["transactions.id", "trans_old"] },
+      ],
     });
   });
 
   it("is a no-op when the old transaction is not in the DB", async () => {
     dbState.selectResults.push([]);
 
-    const result = await migrateTransactionOverrides("trans_unknown", "trans_new");
+    const result = await migrateTransactionOverrides("user_1", "trans_unknown", "trans_new");
 
     expect(result).toBe(false);
     expect(dbState.updates).toHaveLength(0);
@@ -210,7 +222,7 @@ describe("migrateTransactionOverrides", () => {
 // ---------------------------------------------------------------------------
 describe("markMissingAccountsInactive", () => {
   it("marks ACTIVE accounts not in the Akahu list as INACTIVE", async () => {
-    await markMissingAccountsInactive(["acc_1", "acc_2"]);
+    await markMissingAccountsInactive("user_1", ["acc_1", "acc_2"]);
 
     expect(dbState.updates).toHaveLength(1);
     const { set, where } = dbState.updates[0];
@@ -218,6 +230,7 @@ describe("markMissingAccountsInactive", () => {
     expect(where).toMatchObject({
       op: "and",
       args: [
+        { op: "eq", args: ["accounts.userId", "user_1"] },
         { op: "notInArray", args: ["accounts.id", ["acc_1", "acc_2"]] },
         { op: "eq", args: ["accounts.status", "ACTIVE"] },
       ],
@@ -225,7 +238,7 @@ describe("markMissingAccountsInactive", () => {
   });
 
   it("does nothing when the Akahu list is empty (likely a bad response)", async () => {
-    await markMissingAccountsInactive([]);
+    await markMissingAccountsInactive("user_1", []);
 
     expect(dbState.updates).toHaveLength(0);
   });

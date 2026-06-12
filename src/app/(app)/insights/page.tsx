@@ -11,6 +11,7 @@ import {
   getMonthlyTrends,
   getMonthlyCategoryTrends,
 } from "@/lib/queries/insights";
+import { requireUser } from "@/lib/session";
 import { getAllCategories } from "@/lib/queries/categories";
 import type { Range } from "@/components/insights/RangeSelector";
 
@@ -40,6 +41,7 @@ export default async function InsightsPage({
 }: {
   searchParams: Promise<{ range?: string }>;
 }) {
+  const user = await requireUser();
   const { range: rawRange } = await searchParams;
   const range = parseRange(rawRange);
   const days = RANGE_DAYS[range];
@@ -58,11 +60,11 @@ export default async function InsightsPage({
   try {
     [netWorthHistory, accountHistories, monthlyTrends, categoryTrends, customCats] =
       await Promise.all([
-        getNetWorthHistory(days),
-        getAccountBalanceHistories(days),
-        getMonthlyTrends(months),
-        getMonthlyCategoryTrends(months),
-        getAllCategories(),
+        getNetWorthHistory(user.id, days),
+        getAccountBalanceHistories(user.id, days),
+        getMonthlyTrends(user.id, months),
+        getMonthlyCategoryTrends(user.id, months),
+        getAllCategories(user.id),
       ]);
   } catch {
     dbError = true;

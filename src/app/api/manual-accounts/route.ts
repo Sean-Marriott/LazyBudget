@@ -1,15 +1,22 @@
 import { NextResponse } from "next/server";
+import { getSessionUser } from "@/lib/session";
 import { getAllManualAccounts, createManualAccount } from "@/lib/queries/manual-accounts";
 import { MANUAL_ACCOUNT_TYPES } from "@/lib/utils/accounts";
 
 const ALLOWED_TYPES = new Set<string>(MANUAL_ACCOUNT_TYPES);
 
 export async function GET() {
-  const accounts = await getAllManualAccounts();
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const accounts = await getAllManualAccounts(user.id);
   return NextResponse.json(accounts);
 }
 
 export async function POST(request: Request) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   let body: unknown;
   try {
     body = await request.json();
@@ -38,6 +45,7 @@ export async function POST(request: Request) {
   }
 
   const account = await createManualAccount(
+    user.id,
     name.trim(),
     type,
     numBalance.toFixed(2),

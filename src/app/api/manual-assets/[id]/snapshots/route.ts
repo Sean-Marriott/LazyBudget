@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
-import { addManualAssetSnapshot, getAllManualAssets } from "@/lib/queries/manual-assets";
+import { getSessionUser } from "@/lib/session";
+import { addManualAssetSnapshot } from "@/lib/queries/manual-assets";
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   const { id } = await params;
   const numId = Number(id);
   if (!Number.isInteger(numId) || numId <= 0) {
@@ -32,12 +36,9 @@ export async function POST(
     return NextResponse.json({ error: "date must be in YYYY-MM-DD format" }, { status: 400 });
   }
 
-  const assets = await getAllManualAssets();
-  const exists = assets.some((a) => a.id === numId);
-  if (!exists) {
+  const ok = await addManualAssetSnapshot(user.id, numId, numValue.toFixed(2), date);
+  if (!ok) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
-
-  await addManualAssetSnapshot(numId, numValue.toFixed(2), date);
   return new NextResponse(null, { status: 204 });
 }

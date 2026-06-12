@@ -1,6 +1,7 @@
 import { TopBar } from "@/components/layout/TopBar";
 import { TransactionFilters } from "@/components/transactions/TransactionFilters";
 import { TransactionTable } from "@/components/transactions/TransactionTable";
+import { requireUser } from "@/lib/session";
 import { getTransactions } from "@/lib/queries/transactions";
 import { getAllCategories } from "@/lib/queries/categories";
 import { parse, startOfMonth, endOfMonth, isValid } from "date-fns";
@@ -19,6 +20,7 @@ export default async function TransactionsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  const user = await requireUser();
   const { month: monthParam, category, search } = await searchParams;
 
   const parsedMonth = monthParam
@@ -32,13 +34,13 @@ export default async function TransactionsPage({
 
   try {
     [txList, customCats] = await Promise.all([
-      getTransactions({
+      getTransactions(user.id, {
         monthStart: startOfMonth(month),
         monthEnd: endOfMonth(month),
         category: category || undefined,
         search: search || undefined,
       }),
-      getAllCategories(),
+      getAllCategories(user.id),
     ]);
   } catch {
     dbError = true;

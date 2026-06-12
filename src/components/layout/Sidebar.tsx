@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Wallet,
@@ -13,10 +13,13 @@ import {
   CalendarDays,
   SlidersHorizontal,
   Tag,
+  Settings,
+  LogOut,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/components/layout/SidebarContext";
+import { authClient } from "@/lib/auth-client";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -28,11 +31,19 @@ const navItems = [
   { href: "/insights", label: "Insights", icon: TrendingUp },
   { href: "/goals", label: "Goals", icon: Target },
   { href: "/cashflow", label: "Cashflow", icon: CalendarDays },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-export function Sidebar() {
+export function Sidebar({ userEmail }: { userEmail: string }) {
   const { isOpen, close } = useSidebar();
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleLogout() {
+    await authClient.signOut();
+    router.push("/login");
+    router.refresh();
+  }
 
   return (
     <>
@@ -94,7 +105,23 @@ export function Sidebar() {
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-sidebar-border">
+        <div className="p-4 border-t border-sidebar-border space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <p
+              className="text-xs text-sidebar-foreground/70 truncate"
+              title={userEmail}
+            >
+              {userEmail}
+            </p>
+            <button
+              onClick={handleLogout}
+              className="text-sidebar-foreground/50 hover:text-sidebar-foreground shrink-0"
+              aria-label="Log out"
+              title="Log out"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
           <p className="text-xs text-sidebar-foreground/50 text-center">
             Connected via Akahu
           </p>

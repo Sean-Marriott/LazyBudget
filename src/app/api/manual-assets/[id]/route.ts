@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
+import { getSessionUser } from "@/lib/session";
 import { updateManualAsset, deleteManualAsset } from "@/lib/queries/manual-assets";
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   const { id } = await params;
   const numId = Number(id);
   if (!Number.isInteger(numId) || numId <= 0) {
@@ -39,6 +43,7 @@ export async function PATCH(
   }
 
   const asset = await updateManualAsset(
+    user.id,
     numId,
     name.trim(),
     numValue.toFixed(2),
@@ -55,12 +60,15 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   const { id } = await params;
   const numId = Number(id);
   if (!Number.isInteger(numId) || numId <= 0) {
     return NextResponse.json({ error: "invalid id" }, { status: 400 });
   }
 
-  await deleteManualAsset(numId);
+  await deleteManualAsset(user.id, numId);
   return new NextResponse(null, { status: 204 });
 }

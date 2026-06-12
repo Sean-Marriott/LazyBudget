@@ -123,7 +123,7 @@ beforeEach(() => {
 describe("applyRulesToTransactions", () => {
   it("returns 0 and skips uncategorised query when no enabled rules exist", async () => {
     mockOrderBy.mockResolvedValueOnce([]); // no rules
-    const result = await applyRulesToTransactions();
+    const result = await applyRulesToTransactions("user_1");
     expect(result).toBe(0);
     // The second select (uncategorised) should never be called
     expect(callState.fromCallCount).toBe(1);
@@ -133,7 +133,7 @@ describe("applyRulesToTransactions", () => {
   it("returns 0 when rules exist but no uncategorised transactions", async () => {
     mockOrderBy.mockResolvedValueOnce([makeRule()]);
     mockUncatWhere.mockResolvedValueOnce([]); // no transactions
-    const result = await applyRulesToTransactions();
+    const result = await applyRulesToTransactions("user_1");
     expect(result).toBe(0);
     expect(mockUpdateTransaction).not.toHaveBeenCalled();
   });
@@ -142,9 +142,9 @@ describe("applyRulesToTransactions", () => {
     mockOrderBy.mockResolvedValueOnce([makeRule({ setCategory: "Groceries" })]);
     mockUncatWhere.mockResolvedValueOnce([makeTx({ description: "Coffee" })]);
 
-    const result = await applyRulesToTransactions();
+    const result = await applyRulesToTransactions("user_1");
     expect(result).toBe(1);
-    expect(mockUpdateTransaction).toHaveBeenCalledWith("tx_1", { userCategory: "Groceries" });
+    expect(mockUpdateTransaction).toHaveBeenCalledWith("user_1", "tx_1", { userCategory: "Groceries" });
   });
 
   it("applies setNotes from a matching rule", async () => {
@@ -153,8 +153,8 @@ describe("applyRulesToTransactions", () => {
     ]);
     mockUncatWhere.mockResolvedValueOnce([makeTx({ description: "Coffee" })]);
 
-    await applyRulesToTransactions();
-    expect(mockUpdateTransaction).toHaveBeenCalledWith("tx_1", { notes: "Auto-tagged" });
+    await applyRulesToTransactions("user_1");
+    expect(mockUpdateTransaction).toHaveBeenCalledWith("user_1", "tx_1", { notes: "Auto-tagged" });
   });
 
   it("applies setTransfer from a matching rule", async () => {
@@ -163,8 +163,8 @@ describe("applyRulesToTransactions", () => {
     ]);
     mockUncatWhere.mockResolvedValueOnce([makeTx({ description: "Coffee" })]);
 
-    await applyRulesToTransactions();
-    expect(mockUpdateTransaction).toHaveBeenCalledWith("tx_1", { isTransfer: true });
+    await applyRulesToTransactions("user_1");
+    expect(mockUpdateTransaction).toHaveBeenCalledWith("user_1", "tx_1", { isTransfer: true });
   });
 
   it("applies setHidden from a matching rule", async () => {
@@ -173,8 +173,8 @@ describe("applyRulesToTransactions", () => {
     ]);
     mockUncatWhere.mockResolvedValueOnce([makeTx({ description: "Coffee" })]);
 
-    await applyRulesToTransactions();
-    expect(mockUpdateTransaction).toHaveBeenCalledWith("tx_1", { isHidden: true });
+    await applyRulesToTransactions("user_1");
+    expect(mockUpdateTransaction).toHaveBeenCalledWith("user_1", "tx_1", { isHidden: true });
   });
 
   it("skips update when rule has no action fields set", async () => {
@@ -183,7 +183,7 @@ describe("applyRulesToTransactions", () => {
     ]);
     mockUncatWhere.mockResolvedValueOnce([makeTx()]);
 
-    const result = await applyRulesToTransactions();
+    const result = await applyRulesToTransactions("user_1");
     expect(result).toBe(0);
     expect(mockUpdateTransaction).not.toHaveBeenCalled();
   });
@@ -197,7 +197,7 @@ describe("applyRulesToTransactions", () => {
       makeTx({ id: "tx_3", description: "Supermarket" }), // won't match
     ]);
 
-    const result = await applyRulesToTransactions();
+    const result = await applyRulesToTransactions("user_1");
     expect(result).toBe(2);
     expect(mockUpdateTransaction).toHaveBeenCalledTimes(2);
   });
@@ -212,9 +212,9 @@ describe("applyRulesToTransactions", () => {
     mockOrderBy.mockResolvedValueOnce([rule1, rule2]);
     mockUncatWhere.mockResolvedValueOnce([makeTx()]);
 
-    await applyRulesToTransactions();
+    await applyRulesToTransactions("user_1");
     expect(mockUpdateTransaction).toHaveBeenCalledOnce();
-    expect(mockUpdateTransaction).toHaveBeenCalledWith("tx_1", { userCategory: "Eating Out" });
+    expect(mockUpdateTransaction).toHaveBeenCalledWith("user_1", "tx_1", { userCategory: "Eating Out" });
   });
 
   it("falls through to the second rule when the first does not match", async () => {
@@ -231,8 +231,8 @@ describe("applyRulesToTransactions", () => {
     mockOrderBy.mockResolvedValueOnce([rule1, rule2]);
     mockUncatWhere.mockResolvedValueOnce([makeTx({ description: "Coffee shop" })]);
 
-    await applyRulesToTransactions();
-    expect(mockUpdateTransaction).toHaveBeenCalledWith("tx_1", { userCategory: "Eating Out" });
+    await applyRulesToTransactions("user_1");
+    expect(mockUpdateTransaction).toHaveBeenCalledWith("user_1", "tx_1", { userCategory: "Eating Out" });
   });
 });
 
@@ -246,7 +246,7 @@ describe("condition: contains operator", () => {
       makeRule({ conditions: [{ field: "description", operator: "contains", value: "COFFEE" }] }),
     ]);
     mockUncatWhere.mockResolvedValueOnce([makeTx({ description: "morning coffee stop" })]);
-    const result = await applyRulesToTransactions();
+    const result = await applyRulesToTransactions("user_1");
     expect(result).toBe(1);
   });
 
@@ -255,7 +255,7 @@ describe("condition: contains operator", () => {
       makeRule({ conditions: [{ field: "description", operator: "contains", value: "coffee" }] }),
     ]);
     mockUncatWhere.mockResolvedValueOnce([makeTx({ description: "Countdown supermarket" })]);
-    const result = await applyRulesToTransactions();
+    const result = await applyRulesToTransactions("user_1");
     expect(result).toBe(0);
   });
 });
@@ -266,7 +266,7 @@ describe("condition: equals operator", () => {
       makeRule({ conditions: [{ field: "description", operator: "equals", value: "Netflix" }] }),
     ]);
     mockUncatWhere.mockResolvedValueOnce([makeTx({ description: "netflix" })]);
-    const result = await applyRulesToTransactions();
+    const result = await applyRulesToTransactions("user_1");
     expect(result).toBe(1);
   });
 
@@ -275,7 +275,7 @@ describe("condition: equals operator", () => {
       makeRule({ conditions: [{ field: "description", operator: "equals", value: "Netflix" }] }),
     ]);
     mockUncatWhere.mockResolvedValueOnce([makeTx({ description: "Netflix monthly" })]);
-    const result = await applyRulesToTransactions();
+    const result = await applyRulesToTransactions("user_1");
     expect(result).toBe(0);
   });
 });
@@ -286,7 +286,7 @@ describe("condition: starts_with operator", () => {
       makeRule({ conditions: [{ field: "description", operator: "starts_with", value: "PAY" }] }),
     ]);
     mockUncatWhere.mockResolvedValueOnce([makeTx({ description: "Paywave purchase" })]);
-    const result = await applyRulesToTransactions();
+    const result = await applyRulesToTransactions("user_1");
     expect(result).toBe(1);
   });
 
@@ -295,7 +295,7 @@ describe("condition: starts_with operator", () => {
       makeRule({ conditions: [{ field: "description", operator: "starts_with", value: "pay" }] }),
     ]);
     mockUncatWhere.mockResolvedValueOnce([makeTx({ description: "Monthly payment" })]);
-    const result = await applyRulesToTransactions();
+    const result = await applyRulesToTransactions("user_1");
     expect(result).toBe(0);
   });
 });
@@ -310,7 +310,7 @@ describe("condition: merchantName field", () => {
     mockUncatWhere.mockResolvedValueOnce([
       makeTx({ description: "irrelevant", merchantName: "Countdown Supermarket" }),
     ]);
-    const result = await applyRulesToTransactions();
+    const result = await applyRulesToTransactions("user_1");
     expect(result).toBe(1);
   });
 
@@ -323,7 +323,7 @@ describe("condition: merchantName field", () => {
     mockUncatWhere.mockResolvedValueOnce([
       makeTx({ description: "countdown", merchantName: "Different Store" }),
     ]);
-    const result = await applyRulesToTransactions();
+    const result = await applyRulesToTransactions("user_1");
     expect(result).toBe(0);
   });
 
@@ -334,7 +334,7 @@ describe("condition: merchantName field", () => {
       }),
     ]);
     mockUncatWhere.mockResolvedValueOnce([makeTx({ merchantName: null })]);
-    const result = await applyRulesToTransactions();
+    const result = await applyRulesToTransactions("user_1");
     expect(result).toBe(0);
   });
 });
@@ -357,7 +357,7 @@ describe("AND combinator", () => {
     mockUncatWhere.mockResolvedValueOnce([
       makeTx({ description: "coffee latte", merchantName: "Brew Lab" }),
     ]);
-    const result = await applyRulesToTransactions();
+    const result = await applyRulesToTransactions("user_1");
     expect(result).toBe(1);
   });
 
@@ -374,7 +374,7 @@ describe("AND combinator", () => {
     mockUncatWhere.mockResolvedValueOnce([
       makeTx({ description: "coffee latte", merchantName: "Other Cafe" }),
     ]);
-    const result = await applyRulesToTransactions();
+    const result = await applyRulesToTransactions("user_1");
     expect(result).toBe(0);
   });
 });
@@ -393,7 +393,7 @@ describe("OR combinator", () => {
     mockUncatWhere.mockResolvedValueOnce([
       makeTx({ description: "local cafe visit" }),
     ]);
-    const result = await applyRulesToTransactions();
+    const result = await applyRulesToTransactions("user_1");
     expect(result).toBe(1);
   });
 
@@ -408,7 +408,7 @@ describe("OR combinator", () => {
       }),
     ]);
     mockUncatWhere.mockResolvedValueOnce([makeTx({ description: "Countdown supermarket" })]);
-    const result = await applyRulesToTransactions();
+    const result = await applyRulesToTransactions("user_1");
     expect(result).toBe(0);
   });
 });
@@ -417,14 +417,14 @@ describe("empty or invalid conditions", () => {
   it("does not match when conditions is an empty array", async () => {
     mockOrderBy.mockResolvedValueOnce([makeRule({ conditions: [] as never })]);
     mockUncatWhere.mockResolvedValueOnce([makeTx()]);
-    const result = await applyRulesToTransactions();
+    const result = await applyRulesToTransactions("user_1");
     expect(result).toBe(0);
   });
 
   it("does not match when conditions is not an array", async () => {
     mockOrderBy.mockResolvedValueOnce([makeRule({ conditions: null as never })]);
     mockUncatWhere.mockResolvedValueOnce([makeTx()]);
-    const result = await applyRulesToTransactions();
+    const result = await applyRulesToTransactions("user_1");
     expect(result).toBe(0);
   });
 });

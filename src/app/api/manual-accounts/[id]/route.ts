@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getSessionUser } from "@/lib/session";
 import { updateManualAccount, deleteManualAccount } from "@/lib/queries/manual-accounts";
 import { MANUAL_ACCOUNT_TYPES } from "@/lib/utils/accounts";
 
@@ -8,6 +9,9 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   const { id } = await params;
   const numId = Number(id);
   if (!Number.isInteger(numId) || numId <= 0) {
@@ -42,6 +46,7 @@ export async function PATCH(
   }
 
   const account = await updateManualAccount(
+    user.id,
     numId,
     name.trim(),
     type,
@@ -58,12 +63,15 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   const { id } = await params;
   const numId = Number(id);
   if (!Number.isInteger(numId) || numId <= 0) {
     return NextResponse.json({ error: "invalid id" }, { status: 400 });
   }
 
-  await deleteManualAccount(numId);
+  await deleteManualAccount(user.id, numId);
   return new NextResponse(null, { status: 204 });
 }

@@ -1,8 +1,8 @@
 import { subDays, format } from "date-fns";
 import type { Transaction, EnrichedTransaction } from "akahu";
-import { getAkahuClient, getUserToken } from "./client";
+import { getAkahuForUser } from "./client";
 import { db } from "../db";
-import { accounts, transactions, appSettings, balanceSnapshots, syncLog } from "../db/schema";
+import { accounts, transactions, userSettings, balanceSnapshots, syncLog } from "../db/schema";
 import { eq, sql } from "drizzle-orm";
 import { mapAkahuCategoryToGroup } from "../utils/categories";
 import { applyRulesToTransactions } from "@/lib/queries/rules";
@@ -23,21 +23,23 @@ export interface SyncResult {
   durationMs: number;
 }
 
-export async function runSync(mode: "incremental" | "full" = "incremental"): Promise<SyncResult> {
+export async function runSync(
+  userId: string,
+  mode: "incremental" | "full" = "incremental"
+): Promise<SyncResult> {
   const startedAt = new Date();
 
   // Insert sync log entry
   const [logEntry] = await db
     .insert(syncLog)
-    .values({ startedAt, status: "RUNNING" })
+    .values({ userId, startedAt, status: "RUNNING" })
     .returning({ id: syncLog.id });
 
   try {
     // -------------------------------------------------------------------
     // Pass 1: Sync accounts
     // -------------------------------------------------------------------
-    const akahuClient = getAkahuClient();
-    const userToken = getUserToken();
+    const { client: akahuClient, userToken } = await getAkahuForUser(userId);
     const akahuAccounts = await akahuClient.accounts.list(userToken);
     const today = format(new Date(), "yyyy-MM-dd");
 
@@ -49,6 +51,7 @@ export async function runSync(mode: "incremental" | "full" = "incremental"): Pro
         .insert(accounts)
         .values({
           id: acc._id,
+          userId,
           name: acc.name,
           status: acc.status,
           type: acc.type,
@@ -75,6 +78,9 @@ export async function runSync(mode: "incremental" | "full" = "incremental"): Pro
             lastRefreshed: sql`excluded.last_refreshed`,
             updatedAt: sql`now()`,
           },
+          // Akahu ids are globally unique per app connection, but guard
+          // against a cross-user id collision overwriting someone else's row
+          setWhere: sql`${accounts.userId} = ${userId}`,
         });
 
       // Write balance snapshot for today (upsert so re-runs don't duplicate)
@@ -82,6 +88,7 @@ export async function runSync(mode: "incremental" | "full" = "incremental"): Pro
         await db
           .insert(balanceSnapshots)
           .values({
+            userId,
             accountId: acc._id,
             snapshotDate: today,
             balance: String(balance),
@@ -92,12 +99,15 @@ export async function runSync(mode: "incremental" | "full" = "incremental"): Pro
       // Open banking migration: merge the replaced classic account into this one
       const accMigratedFrom = getMigratedId(acc);
       if (accMigratedFrom && accMigratedFrom !== acc._id) {
-        await migrateAccount(accMigratedFrom, acc._id);
+        await migrateAccount(userId, accMigratedFrom, acc._id);
       }
     }
 
     // Deactivate accounts Akahu no longer returns (revoked or deselected)
-    await markMissingAccountsInactive(akahuAccounts.map((acc) => acc._id));
+    await markMissingAccountsInactive(
+      userId,
+      akahuAccounts.map((acc) => acc._id)
+    );
 
     // -------------------------------------------------------------------
     // Pass 2: Sync transactions
@@ -107,15 +117,14 @@ export async function runSync(mode: "incremental" | "full" = "incremental"): Pro
     if (mode === "full") {
       startDate = subDays(new Date(), 730); // 2 years back
     } else {
-      const lastSyncSetting = await db
-        .select()
-        .from(appSettings)
-        .where(eq(appSettings.key, "last_sync_at"))
+      const [settings] = await db
+        .select({ lastSyncAt: userSettings.lastSyncAt })
+        .from(userSettings)
+        .where(eq(userSettings.userId, userId))
         .limit(1);
 
-      if (lastSyncSetting.length > 0) {
-        const lastSync = new Date(lastSyncSetting[0].value);
-        startDate = subDays(lastSync, 2); // 2-day overlap to catch late-settled transactions
+      if (settings?.lastSyncAt) {
+        startDate = subDays(settings.lastSyncAt, 2); // 2-day overlap to catch late-settled transactions
       } else {
         startDate = subDays(new Date(), 90); // First run: 90 days
       }
@@ -149,6 +158,7 @@ export async function runSync(mode: "incremental" | "full" = "incremental"): Pro
           .insert(transactions)
           .values({
             id: tx._id,
+            userId,
             accountId: tx._account,
             date: new Date(tx.date),
             description: tx.description,
@@ -185,13 +195,14 @@ export async function runSync(mode: "incremental" | "full" = "incremental"): Pro
               syncedAt: sql`now()`,
               // DO NOT update: userCategory, notes, isTransfer, isHidden
             },
+            setWhere: sql`${transactions.userId} = ${userId}`,
           });
 
         // Open banking migration: carry user overrides from the replaced
         // transaction onto this copy, then drop the old row
         const txMigratedFrom = getMigratedId(tx);
         if (txMigratedFrom && txMigratedFrom !== tx._id) {
-          await migrateTransactionOverrides(txMigratedFrom, tx._id);
+          await migrateTransactionOverrides(userId, txMigratedFrom, tx._id);
         }
 
         txCount++;
@@ -203,18 +214,18 @@ export async function runSync(mode: "incremental" | "full" = "incremental"): Pro
     // -------------------------------------------------------------------
     // Apply transaction rules to newly synced (uncategorised) transactions
     // -------------------------------------------------------------------
-    await applyRulesToTransactions();
+    await applyRulesToTransactions(userId);
 
     // -------------------------------------------------------------------
-    // Update last_sync_at (after successful rule application)
+    // Update lastSyncAt (after successful rule application)
     // -------------------------------------------------------------------
-    const now = new Date().toISOString();
+    const now = new Date();
     await db
-      .insert(appSettings)
-      .values({ key: "last_sync_at", value: now })
+      .insert(userSettings)
+      .values({ userId, lastSyncAt: now })
       .onConflictDoUpdate({
-        target: appSettings.key,
-        set: { value: now, updatedAt: sql`now()` },
+        target: userSettings.userId,
+        set: { lastSyncAt: now, updatedAt: sql`now()` },
       });
 
     const durationMs = Date.now() - startedAt.getTime();
@@ -249,16 +260,18 @@ export async function runSync(mode: "incremental" | "full" = "incremental"): Pro
   }
 }
 
-export async function canSync(): Promise<{ allowed: boolean; nextAllowedAt?: Date; lastSyncAt?: Date }> {
-  const setting = await db
-    .select()
-    .from(appSettings)
-    .where(eq(appSettings.key, "last_sync_at"))
+export async function canSync(
+  userId: string
+): Promise<{ allowed: boolean; nextAllowedAt?: Date; lastSyncAt?: Date }> {
+  const [settings] = await db
+    .select({ lastSyncAt: userSettings.lastSyncAt })
+    .from(userSettings)
+    .where(eq(userSettings.userId, userId))
     .limit(1);
 
-  if (setting.length === 0) return { allowed: true };
+  if (!settings?.lastSyncAt) return { allowed: true };
 
-  const lastSync = new Date(setting[0].value);
+  const lastSync = settings.lastSyncAt;
   const nextAllowed = new Date(lastSync.getTime() + 60 * 60 * 1000); // 1 hour
 
   if (Date.now() < nextAllowed.getTime()) {

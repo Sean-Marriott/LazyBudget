@@ -88,7 +88,7 @@ describe("getTransactions", () => {
   const monthEnd = new Date("2025-01-31T23:59:59Z");
 
   it("calls select().from().leftJoin().where().orderBy() for a basic query", async () => {
-    await getTransactions({ monthStart, monthEnd });
+    await getTransactions("user_1", { monthStart, monthEnd });
 
     expect(mockSelect).toHaveBeenCalledOnce();
     expect(mockSelectFrom).toHaveBeenCalledOnce();
@@ -98,12 +98,13 @@ describe("getTransactions", () => {
   });
 
   it("includes gte, lte, and isHidden=false conditions in the base query", async () => {
-    await getTransactions({ monthStart, monthEnd });
+    await getTransactions("user_1", { monthStart, monthEnd });
 
     expect(and).toHaveBeenCalled();
     const andArgs = vi.mocked(and).mock.calls[0];
-    // The base query has exactly 3 conditions
-    expect(andArgs.length).toBeGreaterThanOrEqual(3);
+    // The base query has exactly 4 conditions (userId + gte + lte + isHidden)
+    expect(andArgs.length).toBeGreaterThanOrEqual(4);
+    expect(eq).toHaveBeenCalledWith(expect.anything(), "user_1"); // userId scope
 
     expect(gte).toHaveBeenCalledWith(expect.anything(), monthStart);
     expect(lte).toHaveBeenCalledWith(expect.anything(), monthEnd);
@@ -111,14 +112,14 @@ describe("getTransactions", () => {
   });
 
   it("does not call ilike or or() when no search is provided", async () => {
-    await getTransactions({ monthStart, monthEnd });
+    await getTransactions("user_1", { monthStart, monthEnd });
 
     expect(ilike).not.toHaveBeenCalled();
     expect(or).not.toHaveBeenCalled();
   });
 
   it("adds ilike OR condition when search is provided", async () => {
-    await getTransactions({ monthStart, monthEnd, search: "coffee" });
+    await getTransactions("user_1", { monthStart, monthEnd, search: "coffee" });
 
     expect(ilike).toHaveBeenCalledTimes(2);
     expect(or).toHaveBeenCalledOnce();
@@ -129,26 +130,26 @@ describe("getTransactions", () => {
   });
 
   it("does not add category sql condition when category is omitted", async () => {
-    await getTransactions({ monthStart, monthEnd });
+    await getTransactions("user_1", { monthStart, monthEnd });
 
-    const andArgs = vi.mocked(and).mock.calls[0];
-    expect(andArgs.length).toBe(3);
-  });
-
-  it("adds category SQL condition when category is provided", async () => {
-    await getTransactions({ monthStart, monthEnd, category: "Groceries" });
-
-    // 4 conditions: gte + lte + isHidden + category sql
     const andArgs = vi.mocked(and).mock.calls[0];
     expect(andArgs.length).toBe(4);
   });
 
-  it("adds both category and search conditions when both are provided", async () => {
-    await getTransactions({ monthStart, monthEnd, category: "Transport", search: "bp" });
+  it("adds category SQL condition when category is provided", async () => {
+    await getTransactions("user_1", { monthStart, monthEnd, category: "Groceries" });
 
-    // 5 conditions: gte + lte + isHidden + category + search/or
+    // 5 conditions: userId + gte + lte + isHidden + category sql
     const andArgs = vi.mocked(and).mock.calls[0];
     expect(andArgs.length).toBe(5);
+  });
+
+  it("adds both category and search conditions when both are provided", async () => {
+    await getTransactions("user_1", { monthStart, monthEnd, category: "Transport", search: "bp" });
+
+    // 6 conditions: userId + gte + lte + isHidden + category + search/or
+    const andArgs = vi.mocked(and).mock.calls[0];
+    expect(andArgs.length).toBe(6);
     expect(ilike).toHaveBeenCalledTimes(2);
     expect(or).toHaveBeenCalledOnce();
   });
@@ -157,12 +158,12 @@ describe("getTransactions", () => {
     const fakeRows = [{ id: "tx_1", description: "Countdown", amount: "-50.00" }];
     mockSelectOrderBy.mockResolvedValueOnce(fakeRows);
 
-    const result = await getTransactions({ monthStart, monthEnd });
+    const result = await getTransactions("user_1", { monthStart, monthEnd });
     expect(result).toEqual(fakeRows);
   });
 
   it("wraps search term with %...% wildcards for ilike", async () => {
-    await getTransactions({ monthStart, monthEnd, search: "new world" });
+    await getTransactions("user_1", { monthStart, monthEnd, search: "new world" });
 
     const ilikeCalls = vi.mocked(ilike).mock.calls;
     for (const call of ilikeCalls) {
@@ -172,7 +173,7 @@ describe("getTransactions", () => {
 
   it("returns an empty array when the db returns no rows", async () => {
     mockSelectOrderBy.mockResolvedValueOnce([]);
-    const result = await getTransactions({ monthStart, monthEnd });
+    const result = await getTransactions("user_1", { monthStart, monthEnd });
     expect(result).toEqual([]);
   });
 });
@@ -187,7 +188,7 @@ describe("updateTransaction", () => {
 
   it("calls db.update().set().where() with the correct id and data", async () => {
     const data = { userCategory: "Groceries", isHidden: false };
-    await updateTransaction("tx_99", data);
+    await updateTransaction("user_1", "tx_99", data);
 
     expect(mockUpdate).toHaveBeenCalledOnce();
     expect(mockUpdateSet).toHaveBeenCalledWith(data);
@@ -197,23 +198,23 @@ describe("updateTransaction", () => {
 
   it("passes partial data through without modification", async () => {
     const data = { isTransfer: true };
-    await updateTransaction("tx_1", data);
+    await updateTransaction("user_1", "tx_1", data);
     expect(mockUpdateSet).toHaveBeenCalledWith(data);
   });
 
   it("passes null values for userCategory and notes", async () => {
     const data = { userCategory: null, notes: null };
-    await updateTransaction("tx_2", data);
+    await updateTransaction("user_1", "tx_2", data);
     expect(mockUpdateSet).toHaveBeenCalledWith(data);
   });
 
   it("resolves to void (no return value)", async () => {
-    const result = await updateTransaction("tx_3", { isHidden: true });
+    const result = await updateTransaction("user_1", "tx_3", { isHidden: true });
     expect(result).toBeUndefined();
   });
 
   it("calls update on the transactions table reference", async () => {
-    await updateTransaction("tx_4", { notes: "test" });
+    await updateTransaction("user_1", "tx_4", { notes: "test" });
     const updateArg = vi.mocked(mockUpdate).mock.calls[0][0];
     expect(updateArg).toBeDefined();
   });

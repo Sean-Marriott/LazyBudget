@@ -4,6 +4,14 @@ const mockGetAllRules = vi.hoisted(() => vi.fn());
 const mockCreateRule = vi.hoisted(() => vi.fn());
 const mockGetAllCategories = vi.hoisted(() => vi.fn());
 
+const mockGetSessionUser = vi.hoisted(() =>
+  vi.fn().mockResolvedValue({ id: "user_1", email: "test@example.com" })
+);
+
+vi.mock("@/lib/session", () => ({
+  getSessionUser: mockGetSessionUser,
+}));
+
 vi.mock("@/lib/queries/rules", () => ({
   getAllRules: mockGetAllRules,
   createRule: mockCreateRule,
@@ -277,6 +285,7 @@ describe("POST /api/rules — successful creation", () => {
       makeRequest({ name: "  Coffee Rule  ", conditions: [VALID_CONDITION], setCategory: "Eating Out" })
     );
     expect(mockCreateRule).toHaveBeenCalledWith(
+      "user_1",
       expect.objectContaining({ name: "Coffee Rule" })
     );
   });
@@ -290,6 +299,7 @@ describe("POST /api/rules — successful creation", () => {
       })
     );
     expect(mockCreateRule).toHaveBeenCalledWith(
+      "user_1",
       expect.objectContaining({
         conditions: [{ field: "description", operator: "contains", value: "coffee" }],
       })
@@ -301,6 +311,7 @@ describe("POST /api/rules — successful creation", () => {
       makeRequest({ name: "Test", conditions: [VALID_CONDITION], setCategory: "Eating Out" })
     );
     expect(mockCreateRule).toHaveBeenCalledWith(
+      "user_1",
       expect.objectContaining({ conditionCombinator: "AND" })
     );
   });
@@ -310,6 +321,7 @@ describe("POST /api/rules — successful creation", () => {
       makeRequest({ name: "Test", conditions: [VALID_CONDITION], setCategory: "Eating Out", setNotes: "  " })
     );
     expect(mockCreateRule).toHaveBeenCalledWith(
+      "user_1",
       expect.objectContaining({ setNotes: null })
     );
   });

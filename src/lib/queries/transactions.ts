@@ -1,10 +1,10 @@
 import { db } from "../db";
 import { transactions, accounts } from "../db/schema";
 import { eq, desc, and, gte, lte, sql, or, ilike } from "drizzle-orm";
-import { startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { startOfMonth, endOfMonth } from "date-fns";
 import { toNumber } from "../utils/currency";
 
-export async function getRecentTransactions(limit = 10) {
+export async function getRecentTransactions(userId: string, limit = 10) {
   return db
     .select({
       id: transactions.id,
@@ -24,6 +24,7 @@ export async function getRecentTransactions(limit = 10) {
     .leftJoin(accounts, eq(transactions.accountId, accounts.id))
     .where(
       and(
+        eq(transactions.userId, userId),
         eq(transactions.isHidden, false),
         eq(transactions.isTransfer, false)
       )
@@ -32,7 +33,10 @@ export async function getRecentTransactions(limit = 10) {
     .limit(limit);
 }
 
-export async function getMonthlySpendingByCategory(month: Date) {
+export async function getMonthlySpendingByCategory(
+  userId: string,
+  month: Date
+) {
   const start = startOfMonth(month);
   const end = endOfMonth(month);
 
@@ -45,6 +49,7 @@ export async function getMonthlySpendingByCategory(month: Date) {
     .from(transactions)
     .where(
       and(
+        eq(transactions.userId, userId),
         gte(transactions.date, start),
         lte(transactions.date, end),
         eq(transactions.isHidden, false),
@@ -62,15 +67,19 @@ export async function getMonthlySpendingByCategory(month: Date) {
   }));
 }
 
-export async function getTransactions(opts: {
-  monthStart: Date;
-  monthEnd: Date;
-  category?: string;
-  search?: string;
-}) {
+export async function getTransactions(
+  userId: string,
+  opts: {
+    monthStart: Date;
+    monthEnd: Date;
+    category?: string;
+    search?: string;
+  }
+) {
   const { monthStart, monthEnd, category, search } = opts;
 
   const conditions = [
+    eq(transactions.userId, userId),
     gte(transactions.date, monthStart),
     lte(transactions.date, monthEnd),
     eq(transactions.isHidden, false),
@@ -114,6 +123,7 @@ export async function getTransactions(opts: {
 }
 
 export async function updateTransaction(
+  userId: string,
   id: string,
   data: {
     userCategory?: string | null;
@@ -122,10 +132,13 @@ export async function updateTransaction(
     isHidden?: boolean;
   }
 ): Promise<void> {
-  await db.update(transactions).set(data).where(eq(transactions.id, id));
+  await db
+    .update(transactions)
+    .set(data)
+    .where(and(eq(transactions.userId, userId), eq(transactions.id, id)));
 }
 
-export async function getMonthSummary(month: Date) {
+export async function getMonthSummary(userId: string, month: Date) {
   const start = startOfMonth(month);
   const end = endOfMonth(month);
 
@@ -137,6 +150,7 @@ export async function getMonthSummary(month: Date) {
     .from(transactions)
     .where(
       and(
+        eq(transactions.userId, userId),
         gte(transactions.date, start),
         lte(transactions.date, end),
         eq(transactions.isHidden, false),

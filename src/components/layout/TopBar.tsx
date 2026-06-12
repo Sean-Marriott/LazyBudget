@@ -1,18 +1,20 @@
 import { db } from "@/lib/db";
-import { appSettings } from "@/lib/db/schema";
+import { userSettings } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { requireUser } from "@/lib/session";
 import { SyncButton } from "@/components/layout/SyncButton";
 import { MenuToggleButton } from "@/components/layout/MenuToggleButton";
 
 export async function TopBar({ title }: { title: string }) {
   let lastSyncAt: string | null = null;
   try {
-    const setting = await db
-      .select()
-      .from(appSettings)
-      .where(eq(appSettings.key, "last_sync_at"))
+    const user = await requireUser();
+    const [settings] = await db
+      .select({ lastSyncAt: userSettings.lastSyncAt })
+      .from(userSettings)
+      .where(eq(userSettings.userId, user.id))
       .limit(1);
-    lastSyncAt = setting[0]?.value ?? null;
+    lastSyncAt = settings?.lastSyncAt?.toISOString() ?? null;
   } catch {
     // DB not yet migrated or unavailable
   }

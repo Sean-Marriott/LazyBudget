@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
+import { getSessionUser } from "@/lib/session";
 import { db } from "@/lib/db";
 import { categories, transactions } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import {
   getCategoryById,
   deleteCategory,
@@ -13,6 +14,9 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   const { id } = await params;
   const numId = Number(id);
   if (!Number.isInteger(numId) || numId <= 0) {
@@ -47,7 +51,7 @@ export async function PATCH(
     return NextResponse.json({ error: "emoji must be at most 8 characters" }, { status: 400 });
   }
 
-  const existing = await getCategoryById(numId);
+  const existing = await getCategoryById(user.id, numId);
   if (!existing) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
@@ -66,13 +70,18 @@ export async function PATCH(
         await tx
           .update(transactions)
           .set({ userCategory: data.name })
-          .where(eq(transactions.userCategory, existing.name));
+          .where(
+            and(
+              eq(transactions.userId, user.id),
+              eq(transactions.userCategory, existing.name)
+            )
+          );
       }
 
       const [updated] = await tx
         .update(categories)
         .set(data)
-        .where(eq(categories.id, numId))
+        .where(and(eq(categories.userId, user.id), eq(categories.id, numId)))
         .returning();
       return updated ?? null;
     });
@@ -99,17 +108,20 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   const { id } = await params;
   const numId = Number(id);
   if (!Number.isInteger(numId) || numId <= 0) {
     return NextResponse.json({ error: "invalid id" }, { status: 400 });
   }
 
-  const existing = await getCategoryById(numId);
+  const existing = await getCategoryById(user.id, numId);
   if (!existing) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 
-  await deleteCategory(numId);
+  await deleteCategory(user.id, numId);
   return new NextResponse(null, { status: 204 });
 }

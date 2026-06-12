@@ -1,14 +1,21 @@
 import { NextResponse } from "next/server";
+import { getSessionUser } from "@/lib/session";
 import { getAllCategories, createCategory } from "@/lib/queries/categories";
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
 export async function GET() {
-  const cats = await getAllCategories();
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const cats = await getAllCategories(user.id);
   return NextResponse.json(cats);
 }
 
 export async function POST(request: Request) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   let body: unknown;
   try {
     body = await request.json();
@@ -35,7 +42,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const cat = await createCategory({
+    const cat = await createCategory(user.id, {
       name: name.trim(),
       color,
       emoji: typeof emoji === "string" ? emoji.trim() || null : null,

@@ -8,58 +8,76 @@ import {
   date,
   timestamp,
   uniqueIndex,
+  index,
   jsonb,
 } from "drizzle-orm/pg-core";
 import type { RuleCondition } from "@/lib/utils/rules";
+import { users } from "./auth-schema";
+
+export * from "./auth-schema";
 
 // ---------------------------------------------------------------------------
 // Accounts — synced from Akahu
 // ---------------------------------------------------------------------------
-export const accounts = pgTable("accounts", {
-  id: text("id").primaryKey(), // Akahu _id (acc_xxx)
-  name: text("name").notNull(),
-  status: text("status").notNull(), // ACTIVE | INACTIVE
-  type: text("type").notNull(), // CHECKING | SAVINGS | CREDITCARD | LOAN | KIWISAVER
-  //                              | INVESTMENT | TERMDEPOSIT | FOREIGN | TAX | REWARDS | WALLET
-  currency: text("currency").notNull().default("NZD"),
-  balance: numeric("balance", { precision: 12, scale: 2 }),
-  availableBalance: numeric("available_balance", { precision: 12, scale: 2 }),
-  connectionName: text("connection_name"),
-  connectionLogo: text("connection_logo"),
-  formattedAccount: text("formatted_account"),
-  lastRefreshed: timestamp("last_refreshed", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-});
+export const accounts = pgTable(
+  "accounts",
+  {
+    id: text("id").primaryKey(), // Akahu _id (acc_xxx)
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    status: text("status").notNull(), // ACTIVE | INACTIVE
+    type: text("type").notNull(), // CHECKING | SAVINGS | CREDITCARD | LOAN | KIWISAVER
+    //                              | INVESTMENT | TERMDEPOSIT | FOREIGN | TAX | REWARDS | WALLET
+    currency: text("currency").notNull().default("NZD"),
+    balance: numeric("balance", { precision: 12, scale: 2 }),
+    availableBalance: numeric("available_balance", { precision: 12, scale: 2 }),
+    connectionName: text("connection_name"),
+    connectionLogo: text("connection_logo"),
+    formattedAccount: text("formatted_account"),
+    lastRefreshed: timestamp("last_refreshed", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => [index("accounts_user_id_idx").on(t.userId)]
+);
 
 // ---------------------------------------------------------------------------
 // Transactions — synced from Akahu, user overrides never overwritten by sync
 // ---------------------------------------------------------------------------
-export const transactions = pgTable("transactions", {
-  id: text("id").primaryKey(), // Akahu _id (trans_xxx)
-  accountId: text("account_id").references(() => accounts.id),
-  date: timestamp("date", { withTimezone: true }).notNull(),
-  description: text("description").notNull(),
-  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
-  balance: numeric("balance", { precision: 12, scale: 2 }),
-  type: text("type"), // CREDIT | DEBIT | PAYMENT | TRANSFER | EFTPOS | etc
-  // Akahu enrichment
-  akahuCategoryCode: text("akahu_category_code"),
-  akahuCategoryName: text("akahu_category_name"),
-  akahuCategoryGroup: text("akahu_category_group"),
-  merchantName: text("merchant_name"),
-  merchantId: text("merchant_id"),
-  // User overrides — never overwritten by sync
-  userCategory: text("user_category"),
-  notes: text("notes"),
-  isTransfer: boolean("is_transfer").default(false),
-  isHidden: boolean("is_hidden").default(false),
-  // Bank metadata
-  particulars: text("particulars"),
-  reference: text("reference"),
-  code: text("code"),
-  syncedAt: timestamp("synced_at", { withTimezone: true }).defaultNow(),
-});
+export const transactions = pgTable(
+  "transactions",
+  {
+    id: text("id").primaryKey(), // Akahu _id (trans_xxx)
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    accountId: text("account_id").references(() => accounts.id),
+    date: timestamp("date", { withTimezone: true }).notNull(),
+    description: text("description").notNull(),
+    amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+    balance: numeric("balance", { precision: 12, scale: 2 }),
+    type: text("type"), // CREDIT | DEBIT | PAYMENT | TRANSFER | EFTPOS | etc
+    // Akahu enrichment
+    akahuCategoryCode: text("akahu_category_code"),
+    akahuCategoryName: text("akahu_category_name"),
+    akahuCategoryGroup: text("akahu_category_group"),
+    merchantName: text("merchant_name"),
+    merchantId: text("merchant_id"),
+    // User overrides — never overwritten by sync
+    userCategory: text("user_category"),
+    notes: text("notes"),
+    isTransfer: boolean("is_transfer").default(false),
+    isHidden: boolean("is_hidden").default(false),
+    // Bank metadata
+    particulars: text("particulars"),
+    reference: text("reference"),
+    code: text("code"),
+    syncedAt: timestamp("synced_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => [index("transactions_user_id_idx").on(t.userId)]
+);
 
 // ---------------------------------------------------------------------------
 // Budgets — monthly budget lines per category
@@ -68,6 +86,9 @@ export const budgets = pgTable(
   "budgets",
   {
     id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
     month: date("month").notNull(), // first day of month: 2026-03-01
     category: text("category").notNull(),
     budgetType: text("budget_type").notNull(), // SPEND | SAVE | INVEST | INCOME
@@ -75,7 +96,13 @@ export const budgets = pgTable(
     notes: text("notes"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   },
-  (t) => [uniqueIndex("budgets_month_category_idx").on(t.month, t.category)]
+  (t) => [
+    uniqueIndex("budgets_user_month_category_idx").on(
+      t.userId,
+      t.month,
+      t.category
+    ),
+  ]
 );
 
 // ---------------------------------------------------------------------------
@@ -83,6 +110,9 @@ export const budgets = pgTable(
 // ---------------------------------------------------------------------------
 export const goals = pgTable("goals", {
   id: serial("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   description: text("description"),
   targetAmount: numeric("target_amount", { precision: 12, scale: 2 }).notNull(),
@@ -112,6 +142,9 @@ export const balanceSnapshots = pgTable(
   "balance_snapshots",
   {
     id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
     accountId: text("account_id")
       .notNull()
       .references(() => accounts.id),
@@ -123,6 +156,7 @@ export const balanceSnapshots = pgTable(
       t.accountId,
       t.snapshotDate
     ),
+    index("balance_snapshots_user_id_idx").on(t.userId),
   ]
 );
 
@@ -131,6 +165,9 @@ export const balanceSnapshots = pgTable(
 // ---------------------------------------------------------------------------
 export const manualAssets = pgTable("manual_assets", {
   id: serial("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   emoji: text("emoji"),
   value: numeric("value", { precision: 12, scale: 2 }).notNull(),
@@ -144,6 +181,9 @@ export const manualAssets = pgTable("manual_assets", {
 // ---------------------------------------------------------------------------
 export const manualAccounts = pgTable("manual_accounts", {
   id: serial("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   type: text("type").notNull(), // CHECKING | SAVINGS | CREDITCARD | LOAN | KIWISAVER
   //                              | INVESTMENT | TERMDEPOSIT | FOREIGN | WALLET
@@ -158,6 +198,9 @@ export const manualAccounts = pgTable("manual_accounts", {
 // ---------------------------------------------------------------------------
 export const transactionRules = pgTable("transaction_rules", {
   id: serial("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   enabled: boolean("enabled").default(true).notNull(),
   // Conditions
@@ -174,13 +217,20 @@ export const transactionRules = pgTable("transaction_rules", {
 // ---------------------------------------------------------------------------
 // Custom categories — user-defined transaction categories
 // ---------------------------------------------------------------------------
-export const categories = pgTable("categories", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull().unique(),
-  color: text("color").notNull(), // hex e.g. "#e0af68"
-  emoji: text("emoji"),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-});
+export const categories = pgTable(
+  "categories",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    color: text("color").notNull(), // hex e.g. "#e0af68"
+    emoji: text("emoji"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => [uniqueIndex("categories_user_name_idx").on(t.userId, t.name)]
+);
 
 // ---------------------------------------------------------------------------
 // Manual account snapshots — historical balance for manual accounts
@@ -231,10 +281,26 @@ export const manualAssetSnapshots = pgTable(
 // ---------------------------------------------------------------------------
 export const syncLog = pgTable("sync_log", {
   id: serial("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
   completedAt: timestamp("completed_at", { withTimezone: true }),
   status: text("status").notNull(), // RUNNING | SUCCESS | FAILED
   accountsSynced: numeric("accounts_synced").default("0"),
   transactionsSynced: numeric("transactions_synced").default("0"),
   errorMessage: text("error_message"),
+});
+
+// ---------------------------------------------------------------------------
+// User settings — per-user Akahu credentials (encrypted) and sync state
+// ---------------------------------------------------------------------------
+export const userSettings = pgTable("user_settings", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  akahuAppToken: text("akahu_app_token"), // encrypted via src/lib/crypto.ts
+  akahuUserToken: text("akahu_user_token"), // encrypted via src/lib/crypto.ts
+  lastSyncAt: timestamp("last_sync_at", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });

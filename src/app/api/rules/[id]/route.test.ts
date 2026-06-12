@@ -5,6 +5,14 @@ const mockUpdateRule = vi.hoisted(() => vi.fn());
 const mockDeleteRule = vi.hoisted(() => vi.fn());
 const mockGetAllCategories = vi.hoisted(() => vi.fn());
 
+const mockGetSessionUser = vi.hoisted(() =>
+  vi.fn().mockResolvedValue({ id: "user_1", email: "test@example.com" })
+);
+
+vi.mock("@/lib/session", () => ({
+  getSessionUser: mockGetSessionUser,
+}));
+
 vi.mock("@/lib/queries/rules", () => ({
   getRuleById: mockGetRuleById,
   updateRule: mockUpdateRule,
@@ -236,6 +244,7 @@ describe("PATCH /api/rules/[id] — successful update", () => {
   it("passes trimmed name to updateRule", async () => {
     await PATCH(makeRequest({ name: "  Trimmed Name  " }), makeParams("1"));
     expect(mockUpdateRule).toHaveBeenCalledWith(
+      "user_1",
       1,
       expect.objectContaining({ name: "Trimmed Name" })
     );
@@ -243,12 +252,12 @@ describe("PATCH /api/rules/[id] — successful update", () => {
 
   it("passes enabled: false correctly", async () => {
     await PATCH(makeRequest({ enabled: false }), makeParams("1"));
-    expect(mockUpdateRule).toHaveBeenCalledWith(1, expect.objectContaining({ enabled: false }));
+    expect(mockUpdateRule).toHaveBeenCalledWith("user_1", 1, expect.objectContaining({ enabled: false }));
   });
 
   it("passes enabled: true correctly", async () => {
     await PATCH(makeRequest({ enabled: true }), makeParams("2"));
-    expect(mockUpdateRule).toHaveBeenCalledWith(2, expect.objectContaining({ enabled: true }));
+    expect(mockUpdateRule).toHaveBeenCalledWith("user_1", 2, expect.objectContaining({ enabled: true }));
   });
 
   it("trims condition values before saving", async () => {
@@ -259,6 +268,7 @@ describe("PATCH /api/rules/[id] — successful update", () => {
       makeParams("1")
     );
     expect(mockUpdateRule).toHaveBeenCalledWith(
+      "user_1",
       1,
       expect.objectContaining({
         conditions: [{ field: "description", operator: "contains", value: "coffee" }],
@@ -268,14 +278,14 @@ describe("PATCH /api/rules/[id] — successful update", () => {
 
   it("coerces empty setNotes string to null", async () => {
     await PATCH(makeRequest({ setNotes: "   " }), makeParams("1"));
-    expect(mockUpdateRule).toHaveBeenCalledWith(1, expect.objectContaining({ setNotes: null }));
+    expect(mockUpdateRule).toHaveBeenCalledWith("user_1", 1, expect.objectContaining({ setNotes: null }));
   });
 
   it("passes null setCategory through when another action remains", async () => {
     // Existing rule has setNotes set, so clearing setCategory still leaves an action
     mockGetRuleById.mockResolvedValueOnce({ ...UPDATED_RULE, setNotes: "auto-tagged" });
     await PATCH(makeRequest({ setCategory: null }), makeParams("1"));
-    expect(mockUpdateRule).toHaveBeenCalledWith(1, expect.objectContaining({ setCategory: null }));
+    expect(mockUpdateRule).toHaveBeenCalledWith("user_1", 1, expect.objectContaining({ setCategory: null }));
   });
 
   it("returns 400 when patch would clear the last remaining action", async () => {
@@ -295,6 +305,7 @@ describe("PATCH /api/rules/[id] — successful update", () => {
   it("passes conditionCombinator 'OR' correctly", async () => {
     await PATCH(makeRequest({ conditionCombinator: "OR" }), makeParams("1"));
     expect(mockUpdateRule).toHaveBeenCalledWith(
+      "user_1",
       1,
       expect.objectContaining({ conditionCombinator: "OR" })
     );
@@ -302,7 +313,7 @@ describe("PATCH /api/rules/[id] — successful update", () => {
 
   it("only includes fields present in the request body", async () => {
     await PATCH(makeRequest({ enabled: false }), makeParams("1"));
-    const calledWith = mockUpdateRule.mock.calls[0][1] as Record<string, unknown>;
+    const calledWith = mockUpdateRule.mock.calls[0][2] as Record<string, unknown>;
     expect(Object.keys(calledWith)).toEqual(["enabled"]);
   });
 });
@@ -345,6 +356,6 @@ describe("DELETE /api/rules/[id] — successful deletion", () => {
 
   it("calls deleteRule with the parsed numeric id", async () => {
     await DELETE(makeDeleteRequest(), makeParams("42"));
-    expect(mockDeleteRule).toHaveBeenCalledWith(42);
+    expect(mockDeleteRule).toHaveBeenCalledWith("user_1", 42);
   });
 });
