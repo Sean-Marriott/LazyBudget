@@ -68,6 +68,26 @@ beforeEach(() => {
 });
 
 // ---------------------------------------------------------------------------
+// Auth boundary
+// ---------------------------------------------------------------------------
+
+describe("auth boundary", () => {
+  it("GET returns 401 when there is no session", async () => {
+    mockGetSessionUser.mockResolvedValueOnce(null);
+    const res = await GET();
+    expect(res.status).toBe(401);
+    expect(mockGetAllRules).not.toHaveBeenCalled();
+  });
+
+  it("POST returns 401 when there is no session", async () => {
+    mockGetSessionUser.mockResolvedValueOnce(null);
+    const res = await POST(makeRequest({ name: "Coffee", conditions: [VALID_CONDITION], setCategory: "Eating Out" }));
+    expect(res.status).toBe(401);
+    expect(mockCreateRule).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // GET
 // ---------------------------------------------------------------------------
 

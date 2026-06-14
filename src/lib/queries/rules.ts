@@ -49,10 +49,12 @@ export async function updateRule(
   return rule ?? null;
 }
 
-export async function deleteRule(userId: string, id: number): Promise<void> {
-  await db
+export async function deleteRule(userId: string, id: number): Promise<boolean> {
+  const deleted = await db
     .delete(transactionRules)
-    .where(and(eq(transactionRules.userId, userId), eq(transactionRules.id, id)));
+    .where(and(eq(transactionRules.userId, userId), eq(transactionRules.id, id)))
+    .returning({ id: transactionRules.id });
+  return deleted.length > 0;
 }
 
 export async function getRuleById(

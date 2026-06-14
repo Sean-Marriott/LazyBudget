@@ -10,19 +10,18 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const mode = body.mode === "full" ? "full" : "incremental";
 
-  // Check cooldown unless forced full sync
-  if (mode === "incremental") {
-    const { allowed, nextAllowedAt, lastSyncAt } = await canSync(user.id);
-    if (!allowed) {
-      return NextResponse.json(
-        {
-          error: "Sync cooldown active",
-          nextAllowedAt: nextAllowedAt?.toISOString(),
-          lastSyncAt: lastSyncAt?.toISOString(),
-        },
-        { status: 429 }
-      );
-    }
+  // Enforce the per-user cooldown for all modes — a full sync is the more
+  // expensive operation, so it must not be a way to bypass the rate limit.
+  const { allowed, nextAllowedAt, lastSyncAt } = await canSync(user.id);
+  if (!allowed) {
+    return NextResponse.json(
+      {
+        error: "Sync cooldown active",
+        nextAllowedAt: nextAllowedAt?.toISOString(),
+        lastSyncAt: lastSyncAt?.toISOString(),
+      },
+      { status: 429 }
+    );
   }
 
   try {

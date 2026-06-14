@@ -69,6 +69,9 @@ export async function DELETE(
     return NextResponse.json({ error: "invalid id" }, { status: 400 });
   }
 
-  await deleteManualAsset(user.id, numId);
+  const deleted = await deleteManualAsset(user.id, numId);
+  if (!deleted) {
+    return NextResponse.json({ error: "not found" }, { status: 404 });
+  }
   return new NextResponse(null, { status: 204 });
 }

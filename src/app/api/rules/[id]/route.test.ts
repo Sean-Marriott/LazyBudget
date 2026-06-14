@@ -72,8 +72,28 @@ beforeEach(() => {
   // By default, the rule exists and has an action (setCategory)
   mockGetRuleById.mockResolvedValue(UPDATED_RULE);
   mockUpdateRule.mockResolvedValue(UPDATED_RULE);
-  mockDeleteRule.mockResolvedValue(undefined);
+  mockDeleteRule.mockResolvedValue(true);
   mockGetAllCategories.mockResolvedValue([]);
+});
+
+// ---------------------------------------------------------------------------
+// Auth boundary
+// ---------------------------------------------------------------------------
+
+describe("auth boundary", () => {
+  it("PATCH returns 401 when there is no session", async () => {
+    mockGetSessionUser.mockResolvedValueOnce(null);
+    const res = await PATCH(makeRequest({ name: "Test" }), makeParams("1"));
+    expect(res.status).toBe(401);
+    expect(mockUpdateRule).not.toHaveBeenCalled();
+  });
+
+  it("DELETE returns 401 when there is no session", async () => {
+    mockGetSessionUser.mockResolvedValueOnce(null);
+    const res = await DELETE(makeDeleteRequest(), makeParams("1"));
+    expect(res.status).toBe(401);
+    expect(mockDeleteRule).not.toHaveBeenCalled();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -357,5 +377,11 @@ describe("DELETE /api/rules/[id] — successful deletion", () => {
   it("calls deleteRule with the parsed numeric id", async () => {
     await DELETE(makeDeleteRequest(), makeParams("42"));
     expect(mockDeleteRule).toHaveBeenCalledWith("user_1", 42);
+  });
+
+  it("returns 404 when no row was deleted (not owned / missing)", async () => {
+    mockDeleteRule.mockResolvedValueOnce(false);
+    const res = await DELETE(makeDeleteRequest(), makeParams("1"));
+    expect(res.status).toBe(404);
   });
 });

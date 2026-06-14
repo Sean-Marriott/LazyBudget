@@ -74,10 +74,12 @@ export async function updateManualAccount(
 export async function deleteManualAccount(
   userId: string,
   id: number
-): Promise<void> {
-  await db
+): Promise<boolean> {
+  const deleted = await db
     .delete(manualAccounts)
-    .where(and(eq(manualAccounts.userId, userId), eq(manualAccounts.id, id)));
+    .where(and(eq(manualAccounts.userId, userId), eq(manualAccounts.id, id)))
+    .returning({ id: manualAccounts.id });
+  return deleted.length > 0;
 }
 
 export async function addManualAccountSnapshot(

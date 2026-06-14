@@ -65,10 +65,12 @@ export async function updateManualAsset(
   });
 }
 
-export async function deleteManualAsset(userId: string, id: number): Promise<void> {
-  await db
+export async function deleteManualAsset(userId: string, id: number): Promise<boolean> {
+  const deleted = await db
     .delete(manualAssets)
-    .where(and(eq(manualAssets.userId, userId), eq(manualAssets.id, id)));
+    .where(and(eq(manualAssets.userId, userId), eq(manualAssets.id, id)))
+    .returning({ id: manualAssets.id });
+  return deleted.length > 0;
 }
 
 export async function addManualAssetSnapshot(

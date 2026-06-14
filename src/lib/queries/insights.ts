@@ -85,7 +85,16 @@ export async function getNetWorthHistory(
     akahuByDate.get(row.date)!.push({ balance: toNumber(row.balance), type: row.type });
   }
 
-  const allDates = Array.from(akahuByDate.keys()).sort();
+  // Akahu daily snapshots form the timeline backbone. A user with no Akahu
+  // accounts (manual accounts/assets only) has none, so fall back to the union
+  // of their manual snapshot dates rather than returning an empty history.
+  let allDates = Array.from(akahuByDate.keys()).sort();
+  if (allDates.length === 0) {
+    const manualDates = new Set<string>();
+    for (const s of manualAcctSnaps) manualDates.add(s.date);
+    for (const s of manualAssetSnaps) manualDates.add(s.date);
+    allDates = Array.from(manualDates).sort();
+  }
   if (allDates.length === 0) return [];
 
   // Forward-fill manual values as we iterate sorted dates
