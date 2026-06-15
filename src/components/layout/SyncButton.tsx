@@ -24,6 +24,8 @@ export function SyncButton({ lastSyncAt }: SyncButtonProps) {
       if (!res.ok) {
         if (res.status === 429) {
           setError(`Next sync available at ${new Date(data.nextAllowedAt).toLocaleTimeString()}`);
+        } else if (res.status === 409 && data.error === "akahu_not_configured") {
+          setError("Add your Akahu tokens in Settings to sync");
         } else {
           setError(data.error ?? "Sync failed");
         }

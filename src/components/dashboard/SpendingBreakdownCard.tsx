@@ -2,11 +2,11 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { SpendingPieChart } from "@/components/charts/SpendingPieChart";
 import { getMonthlySpendingByCategory } from "@/lib/queries/transactions";
 
-export async function SpendingBreakdownCard() {
+export async function SpendingBreakdownCard({ userId }: { userId: string }) {
   let spending: Awaited<ReturnType<typeof getMonthlySpendingByCategory>> | null = null;
 
   try {
-    spending = await getMonthlySpendingByCategory(new Date());
+    spending = await getMonthlySpendingByCategory(userId, new Date());
   } catch (error) {
     console.error("Failed to load monthly spending breakdown.", error);
   }

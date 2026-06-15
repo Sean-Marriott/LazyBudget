@@ -8,16 +8,16 @@ import { getNetWorthHistory, getMonthlyTrends, getAccountBalanceHistories } from
 
 const MAX_ACCOUNTS = 6;
 
-export async function InsightsPreviewCard() {
+export async function InsightsPreviewCard({ userId }: { userId: string }) {
   let netWorthHistory: Awaited<ReturnType<typeof getNetWorthHistory>> = [];
   let monthlyTrends: Awaited<ReturnType<typeof getMonthlyTrends>> = [];
   let allAccounts: Awaited<ReturnType<typeof getAccountBalanceHistories>> = [];
 
   try {
     [netWorthHistory, monthlyTrends, allAccounts] = await Promise.all([
-      getNetWorthHistory(90),
-      getMonthlyTrends(6),
-      getAccountBalanceHistories(90),
+      getNetWorthHistory(userId, 90),
+      getMonthlyTrends(userId, 6),
+      getAccountBalanceHistories(userId, 90),
     ]);
   } catch {
     return null;

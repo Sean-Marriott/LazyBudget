@@ -8,6 +8,7 @@ import { AccountsSummary } from "@/components/dashboard/AccountsSummary";
 import { CashflowCard } from "@/components/dashboard/CashflowCard";
 import { SpendingBreakdownCard } from "@/components/dashboard/SpendingBreakdownCard";
 import { InsightsPreviewCard } from "@/components/dashboard/InsightsPreviewCard";
+import { requireUser } from "@/lib/session";
 import { getAllAccounts, getNetWorthSummary } from "@/lib/queries/accounts";
 import { getRecentTransactions, getMonthSummary } from "@/lib/queries/transactions";
 
@@ -22,6 +23,7 @@ import { getRecentTransactions, getMonthSummary } from "@/lib/queries/transactio
  * @returns The rendered dashboard page JSX element
  */
 export default async function DashboardPage() {
+  const user = await requireUser();
   let netWorth = { assets: 0, liabilities: 0, netWorth: 0 };
   let accounts: Awaited<ReturnType<typeof getAllAccounts>> = [];
   let recentTx: Awaited<ReturnType<typeof getRecentTransactions>> = [];
@@ -30,10 +32,10 @@ export default async function DashboardPage() {
 
   try {
     [netWorth, accounts, recentTx, monthSummary] = await Promise.all([
-      getNetWorthSummary(),
-      getAllAccounts(),
-      getRecentTransactions(15),
-      getMonthSummary(new Date()),
+      getNetWorthSummary(user.id),
+      getAllAccounts(user.id),
+      getRecentTransactions(user.id, 15),
+      getMonthSummary(user.id, new Date()),
     ]);
   } catch {
     dbError = true;
@@ -83,16 +85,16 @@ export default async function DashboardPage() {
             <AccountsSummary accounts={accounts} />
 
             {/* Spending breakdown pie chart */}
-            <SpendingBreakdownCard />
+            <SpendingBreakdownCard userId={user.id} />
 
             {/* Recent transactions — spans 2 cols on large screens */}
             <RecentTransactions transactions={recentTx} />
 
             {/* Compact insights preview — fills the remaining 1-col slot beside recent transactions */}
-            <InsightsPreviewCard />
+            <InsightsPreviewCard userId={user.id} />
 
             {/* Cashflow Sankey — full width */}
-            <CashflowCard />
+            <CashflowCard userId={user.id} />
           </div>
         )}
       </main>

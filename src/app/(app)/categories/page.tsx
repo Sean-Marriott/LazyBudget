@@ -1,18 +1,20 @@
 import { TopBar } from "@/components/layout/TopBar";
 import { CategoriesSection } from "@/components/categories/CategoriesSection";
+import { requireUser } from "@/lib/session";
 import { getAllCategories, getTransactionCountsByCategory } from "@/lib/queries/categories";
 
 export const dynamic = "force-dynamic";
 
 export default async function CategoriesPage() {
+  const user = await requireUser();
   let cats: Awaited<ReturnType<typeof getAllCategories>> = [];
   let transactionCounts: Record<number, number> = {};
   let dbError = false;
 
   try {
     const [fetchedCats, countsByName] = await Promise.all([
-      getAllCategories(),
-      getTransactionCountsByCategory(),
+      getAllCategories(user.id),
+      getTransactionCountsByCategory(user.id),
     ]);
     cats = fetchedCats;
     transactionCounts = Object.fromEntries(

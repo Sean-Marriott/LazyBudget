@@ -8,12 +8,19 @@ import type { AccountGroup } from "@/lib/utils/accounts";
 export type ManualAccount = typeof manualAccounts.$inferSelect;
 export type ManualAccountWithGroup = ManualAccount & { group: AccountGroup };
 
-export async function getAllManualAccounts(): Promise<ManualAccountWithGroup[]> {
-  const rows = await db.select().from(manualAccounts).orderBy(asc(manualAccounts.name));
+export async function getAllManualAccounts(
+  userId: string
+): Promise<ManualAccountWithGroup[]> {
+  const rows = await db
+    .select()
+    .from(manualAccounts)
+    .where(eq(manualAccounts.userId, userId))
+    .orderBy(asc(manualAccounts.name));
   return rows.map((r) => ({ ...r, group: getAccountGroup(r.type) }));
 }
 
 export async function createManualAccount(
+  userId: string,
   name: string,
   type: string,
   balance: string,
@@ -21,12 +28,13 @@ export async function createManualAccount(
 ): Promise<ManualAccount> {
   const [row] = await db
     .insert(manualAccounts)
-    .values({ name, type, balance, notes: notes ?? null })
+    .values({ userId, name, type, balance, notes: notes ?? null })
     .returning();
   return row;
 }
 
 export async function updateManualAccount(
+  userId: string,
   id: number,
   name: string,
   type: string,
@@ -37,8 +45,10 @@ export async function updateManualAccount(
     const [row] = await tx
       .update(manualAccounts)
       .set({ name, type, balance, notes: notes ?? null, updatedAt: new Date() })
-      .where(eq(manualAccounts.id, id))
+      .where(and(eq(manualAccounts.userId, userId), eq(manualAccounts.id, id)))
       .returning();
+
+    if (!row) return null;
 
     const [{ latestDate }] = await tx
       .select({ latestDate: max(manualAccountSnapshots.snapshotDate) })
@@ -57,20 +67,34 @@ export async function updateManualAccount(
         );
     }
 
-    return row ?? null;
+    return row;
   });
 }
 
-export async function deleteManualAccount(id: number): Promise<void> {
-  await db.delete(manualAccounts).where(eq(manualAccounts.id, id));
+export async function deleteManualAccount(
+  userId: string,
+  id: number
+): Promise<boolean> {
+  const deleted = await db
+    .delete(manualAccounts)
+    .where(and(eq(manualAccounts.userId, userId), eq(manualAccounts.id, id)))
+    .returning({ id: manualAccounts.id });
+  return deleted.length > 0;
 }
 
 export async function addManualAccountSnapshot(
+  userId: string,
   id: number,
   balance: string,
   snapshotDate: string
-): Promise<void> {
-  await db.transaction(async (tx) => {
+): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    const [owned] = await tx
+      .select({ id: manualAccounts.id })
+      .from(manualAccounts)
+      .where(and(eq(manualAccounts.userId, userId), eq(manualAccounts.id, id)));
+    if (!owned) return false;
+
     await tx
       .insert(manualAccountSnapshots)
       .values({ manualAccountId: id, balance, snapshotDate })
@@ -90,10 +114,13 @@ export async function addManualAccountSnapshot(
         .set({ balance, updatedAt: new Date() })
         .where(eq(manualAccounts.id, id));
     }
+
+    return true;
   });
 }
 
 export async function getManualAccountSnapshots(
+  userId: string,
   id: number,
   days: number
 ): Promise<Array<{ date: string; balance: number }>> {
@@ -105,20 +132,31 @@ export async function getManualAccountSnapshots(
       balance: manualAccountSnapshots.balance,
     })
     .from(manualAccountSnapshots)
+    .innerJoin(
+      manualAccounts,
+      eq(manualAccountSnapshots.manualAccountId, manualAccounts.id)
+    )
     .where(
-      sql`${manualAccountSnapshots.manualAccountId} = ${id} AND ${manualAccountSnapshots.snapshotDate} >= ${cutoff.toISOString().slice(0, 10)}`
+      sql`${manualAccounts.userId} = ${userId} AND ${manualAccountSnapshots.manualAccountId} = ${id} AND ${manualAccountSnapshots.snapshotDate} >= ${cutoff.toISOString().slice(0, 10)}`
     )
     .orderBy(asc(manualAccountSnapshots.snapshotDate));
   return rows.map((r) => ({ date: r.date, balance: toNumber(r.balance) }));
 }
 
-export async function getLatestManualAccountSnapshotDates(): Promise<Record<number, string>> {
+export async function getLatestManualAccountSnapshotDates(
+  userId: string
+): Promise<Record<number, string>> {
   const rows = await db
     .select({
       manualAccountId: manualAccountSnapshots.manualAccountId,
       latestDate: max(manualAccountSnapshots.snapshotDate),
     })
     .from(manualAccountSnapshots)
+    .innerJoin(
+      manualAccounts,
+      eq(manualAccountSnapshots.manualAccountId, manualAccounts.id)
+    )
+    .where(eq(manualAccounts.userId, userId))
     .groupBy(manualAccountSnapshots.manualAccountId);
   return Object.fromEntries(
     rows.filter((r) => r.latestDate).map((r) => [r.manualAccountId, r.latestDate!])
@@ -126,6 +164,7 @@ export async function getLatestManualAccountSnapshotDates(): Promise<Record<numb
 }
 
 export async function getAllManualAccountSnapshotsSince(
+  userId: string,
   days: number
 ): Promise<Array<{ manualAccountId: number; date: string; balance: number }>> {
   const cutoff = new Date();
@@ -137,7 +176,20 @@ export async function getAllManualAccountSnapshotsSince(
       balance: manualAccountSnapshots.balance,
     })
     .from(manualAccountSnapshots)
-    .where(gte(manualAccountSnapshots.snapshotDate, cutoff.toISOString().slice(0, 10)))
+    .innerJoin(
+      manualAccounts,
+      eq(manualAccountSnapshots.manualAccountId, manualAccounts.id)
+    )
+    .where(
+      and(
+        eq(manualAccounts.userId, userId),
+        gte(manualAccountSnapshots.snapshotDate, cutoff.toISOString().slice(0, 10))
+      )
+    )
     .orderBy(asc(manualAccountSnapshots.snapshotDate));
-  return rows.map((r) => ({ ...r, balance: toNumber(r.balance) }));
+  return rows.map((r) => ({
+    manualAccountId: r.manualAccountId,
+    date: r.date,
+    balance: toNumber(r.balance),
+  }));
 }

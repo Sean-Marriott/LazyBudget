@@ -26,11 +26,10 @@ docker compose down     # Stop PostgreSQL
 ## First-time setup
 
 1. Start Docker Desktop, then `docker compose up -d`
-2. Add real tokens to `.env.local` (copy the placeholder file):
-   - `AKAHU_USER_TOKEN` — from my.akahu.nz personal app
-   - `AKAHU_APP_TOKEN` — from my.akahu.nz personal app
+2. Copy `.env.example` to `.env.local` and set `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, and `ENCRYPTION_KEY` (`openssl rand -hex 32` for the secrets)
 3. `npm run db:push` to create all tables
-4. `npm run dev`, then click **Sync** in the top bar
+4. `npm run dev`, sign up at `/signup` (the **first** registered user claims any pre-existing single-user data)
+5. Add your Akahu personal-app tokens (from my.akahu.nz) on the **Settings** page, then click **Sync** in the top bar
 
 Upgrading a bank connection to official open banking at my.akahu.nz is safe — the next sync merges the migrated account/transaction records (see "Open banking migration" below).
 
@@ -43,6 +42,16 @@ Upgrading a bank connection to official open banking at my.akahu.nz is safe — 
 2. Pages are async Server Components that query Postgres directly via `src/lib/queries/`
 3. No client-side data fetching on the main pages — all data fetched server-side at request time
 
+**Multi-user & auth (Better Auth):** Every user has fully isolated data. Auth tables (`users`, `sessions`, `auth_accounts`, `verifications`) live in `src/lib/db/auth-schema.ts` — the SQL table `auth_accounts` deliberately avoids colliding with the Akahu `accounts` table, mapped via the drizzleAdapter `schema` option in `src/lib/auth.ts` (do NOT enable `usePlural`). Key files:
+- `src/lib/auth.ts` — Better Auth server config (email/password); a `databaseHooks.user.create.after` hook calls `claimOrphanedData()` so the first-ever registered user claims all pre-auth rows (and any legacy `AKAHU_*` env tokens are encrypted into `user_settings`)
+- `src/app/api/auth/[...all]/route.ts` — auth handler; `src/lib/auth-client.ts` — React client
+- `src/lib/session.ts` — `requireUser()` (pages/layouts: redirects to `/login`) and `getSessionUser()` (API routes: null → return 401)
+- `src/proxy.ts` — Next 16 proxy (NOT `middleware.ts`, which is deprecated); cookie-only optimistic redirect, UX only — real enforcement is `requireUser()`/`getSessionUser()`
+- Route groups: `src/app/(app)/` (all app pages; layout calls `requireUser()` and renders the Sidebar) and `src/app/(auth)/` (login/signup). URLs are unchanged.
+- **Convention: every query function in `src/lib/queries/` takes `userId` as its first parameter** and filters by it; updates/deletes include `userId` in the `where` — an empty `returning()` doubles as the ownership check (caller returns 404). Every API route handler resolves `getSessionUser()` first and 401s without a session.
+
+**Akahu tokens are per-user**, stored AES-256-GCM-encrypted (`src/lib/crypto.ts`, key = `ENCRYPTION_KEY` env var) in the `user_settings` table, managed via the Settings page (`PUT/DELETE /api/settings/akahu`). `getAkahuForUser(userId)` in `src/lib/akahu/client.ts` decrypts and returns `{ client, userToken }`, throwing `AkahuNotConfiguredError` (→ 409 `akahu_not_configured` from `/api/sync`, surfaced by `SyncButton`) when unset.
+
 **Key directories:**
 - `src/lib/db/schema.ts` — single source of truth for all table definitions; TypeScript types are inferred from here
 - `src/lib/akahu/` — `client.ts` (lazy AkahuClient), `sync.ts` (full sync logic)
@@ -51,9 +60,7 @@ Upgrading a bank connection to official open banking at my.akahu.nz is safe — 
 - `src/components/` — UI components grouped by page (dashboard/, accounts/, layout/)
 - `src/app/api/` — Route handlers (thin wrappers around query functions)
 
-**Akahu client:** `getAkahuClient()` and `getUserToken()` in `src/lib/akahu/client.ts` are lazy getters — they throw at runtime if tokens are missing, but don't fail at build time.
-
-**Sync strategy:** Incremental by default (fetches from `last_sync_at - 2 days`). User overrides (`userCategory`, `notes`, `isTransfer`, `isHidden`) are never overwritten by sync — the upsert explicitly excludes those columns. A 1-hour cooldown is enforced via `canSync()`.
+**Sync strategy:** Per-user. Incremental by default (fetches from `user_settings.lastSyncAt - 2 days`). User overrides (`userCategory`, `notes`, `isTransfer`, `isHidden`) are never overwritten by sync — the upsert explicitly excludes those columns. A 1-hour per-user cooldown is enforced via `canSync(userId)`. All sync upserts include `userId` and the migration helpers in `src/lib/akahu/migration.ts` are user-scoped (notably `markMissingAccountsInactive` — never let it run unscoped or it would deactivate other users' accounts).
 
 **Open banking migration:** When a bank connection is upgraded from classic to official open banking (at my.akahu.nz), Akahu issues new account ids and copies up to 1 year of transactions with new ids, referencing each replaced record's id in a `_migrated` field. `src/lib/akahu/migration.ts` handles this during sync: `migrateAccount()` re-points balance snapshots, old transactions, and goals to the new account id and deletes the old row; `migrateTransactionOverrides()` carries user overrides onto the migrated copy and deletes the old transaction; `markMissingAccountsInactive()` deactivates accounts Akahu no longer returns. Upgrading a connection is safe — the next sync merges the migrated records.
 
@@ -109,11 +116,13 @@ npm run test:watch   # watch mode
 
 | Table | Purpose |
 |---|---|
+| `users`, `sessions`, `auth_accounts`, `verifications` | Better Auth tables (`src/lib/db/auth-schema.ts`) |
+| `user_settings` | Per-user encrypted Akahu tokens + `lastSyncAt` (sync cooldown) |
 | `accounts` | Synced Akahu accounts with current balances |
 | `transactions` | All transactions; user overrides never overwritten by sync |
 | `budgets` | Monthly budget lines (SPEND/SAVE/INVEST/INCOME per category) |
 | `goals` | Financial goals with progress |
-| `app_settings` | Key/value store; holds `last_sync_at` |
+| `app_settings` | Legacy key/value store (pre-auth `last_sync_at`; superseded by `user_settings`) |
 | `balance_snapshots` | One row per account per sync day — powers net worth history |
 | `sync_log` | History of sync runs |
 | `manual_assets` | User-managed offline assets (cars, property, etc.) with emoji, value, and notes |
@@ -141,5 +150,7 @@ npm run test:watch   # watch mode
 | `/categories` | ✅ Custom category CRUD with color picker and emoji |
 | `/insights` | ✅ Net worth trend, per-account sparklines, monthly income/spending, top-5 category trends; toggleable time range |
 | `/cashflow` | ✅ Income vs spending Sankey diagram with month selector |
+| `/settings` | ✅ Account info + per-user Akahu token management (encrypted at rest) |
+| `/login`, `/signup` | ✅ Better Auth email/password; first signup claims pre-auth data |
 | `/budget` | Stub |
 | `/goals` | Stub |

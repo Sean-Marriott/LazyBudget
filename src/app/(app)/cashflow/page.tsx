@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CashflowSankey } from "@/components/cashflow/CashflowSankey";
 import { MonthSelector } from "@/components/cashflow/MonthSelector";
 import { SpendingPieChart } from "@/components/charts/SpendingPieChart";
+import { requireUser } from "@/lib/session";
 import { getMonthSummary, getMonthlySpendingByCategory } from "@/lib/queries/transactions";
 import { parse, startOfMonth, isValid } from "date-fns";
 
@@ -26,6 +27,7 @@ export default async function CashflowPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  const user = await requireUser();
   const { month: monthParam } = await searchParams;
 
   const parsedMonth = monthParam
@@ -34,8 +36,8 @@ export default async function CashflowPage({
   const month = startOfMonth(isValid(parsedMonth) ? parsedMonth : new Date());
   
   const [{ income }, spending] = await Promise.all([
-    getMonthSummary(month),
-    getMonthlySpendingByCategory(month),
+    getMonthSummary(user.id, month),
+    getMonthlySpendingByCategory(user.id, month),
   ]);
 
   return (

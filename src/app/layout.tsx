@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { SidebarProvider } from "@/components/layout/SidebarContext";
-import { TooltipProvider } from "@/components/ui/tooltip";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -36,18 +33,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}>
-      <body className="h-full bg-background text-foreground">
-        <TooltipProvider>
-          <SidebarProvider>
-            <div className="flex h-full">
-              <Sidebar />
-              <div className="flex-1 flex flex-col min-h-0 md:ml-60">
-                {children}
-              </div>
-            </div>
-          </SidebarProvider>
-        </TooltipProvider>
-      </body>
+      <body className="h-full bg-background text-foreground">{children}</body>
     </html>
   );
 }

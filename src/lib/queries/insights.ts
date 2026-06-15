@@ -27,6 +27,7 @@ export type AccountBalanceHistory = {
 // Net worth history — combines Akahu + manual accounts + manual assets
 // ---------------------------------------------------------------------------
 export async function getNetWorthHistory(
+  userId: string,
   days: number
 ): Promise<Array<{ date: string; netWorth: number }>> {
   const cutoffStr = format(subDays(new Date(), days), "yyyy-MM-dd");
@@ -41,7 +42,12 @@ export async function getNetWorthHistory(
       })
       .from(balanceSnapshots)
       .innerJoin(accounts, eq(balanceSnapshots.accountId, accounts.id))
-      .where(gte(balanceSnapshots.snapshotDate, cutoffStr))
+      .where(
+        and(
+          eq(balanceSnapshots.userId, userId),
+          gte(balanceSnapshots.snapshotDate, cutoffStr)
+        )
+      )
       .orderBy(asc(balanceSnapshots.snapshotDate)),
 
     // All manual account snapshots (no date filter — needed for forward-fill before cutoff)
@@ -54,6 +60,7 @@ export async function getNetWorthHistory(
       })
       .from(manualAccountSnapshots)
       .innerJoin(manualAccounts, eq(manualAccountSnapshots.manualAccountId, manualAccounts.id))
+      .where(eq(manualAccounts.userId, userId))
       .orderBy(asc(manualAccountSnapshots.snapshotDate)),
 
     // All manual asset snapshots (no date filter — needed for forward-fill)
@@ -64,6 +71,8 @@ export async function getNetWorthHistory(
         value: manualAssetSnapshots.value,
       })
       .from(manualAssetSnapshots)
+      .innerJoin(manualAssets, eq(manualAssetSnapshots.manualAssetId, manualAssets.id))
+      .where(eq(manualAssets.userId, userId))
       .orderBy(asc(manualAssetSnapshots.snapshotDate)),
   ]);
 
@@ -76,7 +85,16 @@ export async function getNetWorthHistory(
     akahuByDate.get(row.date)!.push({ balance: toNumber(row.balance), type: row.type });
   }
 
-  const allDates = Array.from(akahuByDate.keys()).sort();
+  // Akahu daily snapshots form the timeline backbone. A user with no Akahu
+  // accounts (manual accounts/assets only) has none, so fall back to the union
+  // of their manual snapshot dates rather than returning an empty history.
+  let allDates = Array.from(akahuByDate.keys()).sort();
+  if (allDates.length === 0) {
+    const manualDates = new Set<string>();
+    for (const s of manualAcctSnaps) manualDates.add(s.date);
+    for (const s of manualAssetSnaps) manualDates.add(s.date);
+    allDates = Array.from(manualDates).sort();
+  }
   if (allDates.length === 0) return [];
 
   // Forward-fill manual values as we iterate sorted dates
@@ -120,6 +138,7 @@ export async function getNetWorthHistory(
 // Per-account balance histories
 // ---------------------------------------------------------------------------
 export async function getAccountBalanceHistories(
+  userId: string,
   days: number
 ): Promise<AccountBalanceHistory[]> {
   const cutoffStr = format(subDays(new Date(), days), "yyyy-MM-dd");
@@ -129,7 +148,7 @@ export async function getAccountBalanceHistories(
       db
         .select()
         .from(accounts)
-        .where(eq(accounts.status, "ACTIVE"))
+        .where(and(eq(accounts.userId, userId), eq(accounts.status, "ACTIVE")))
         .orderBy(accounts.name),
 
       db
@@ -142,13 +161,18 @@ export async function getAccountBalanceHistories(
         .innerJoin(accounts, eq(balanceSnapshots.accountId, accounts.id))
         .where(
           and(
+            eq(balanceSnapshots.userId, userId),
             gte(balanceSnapshots.snapshotDate, cutoffStr),
             eq(accounts.status, "ACTIVE")
           )
         )
         .orderBy(asc(balanceSnapshots.snapshotDate)),
 
-      db.select().from(manualAccounts).orderBy(asc(manualAccounts.name)),
+      db
+        .select()
+        .from(manualAccounts)
+        .where(eq(manualAccounts.userId, userId))
+        .orderBy(asc(manualAccounts.name)),
 
       db
         .select({
@@ -157,10 +181,23 @@ export async function getAccountBalanceHistories(
           balance: manualAccountSnapshots.balance,
         })
         .from(manualAccountSnapshots)
-        .where(gte(manualAccountSnapshots.snapshotDate, cutoffStr))
+        .innerJoin(
+          manualAccounts,
+          eq(manualAccountSnapshots.manualAccountId, manualAccounts.id)
+        )
+        .where(
+          and(
+            eq(manualAccounts.userId, userId),
+            gte(manualAccountSnapshots.snapshotDate, cutoffStr)
+          )
+        )
         .orderBy(asc(manualAccountSnapshots.snapshotDate)),
 
-      db.select().from(manualAssets).orderBy(asc(manualAssets.name)),
+      db
+        .select()
+        .from(manualAssets)
+        .where(eq(manualAssets.userId, userId))
+        .orderBy(asc(manualAssets.name)),
 
       db
         .select({
@@ -169,7 +206,16 @@ export async function getAccountBalanceHistories(
           value: manualAssetSnapshots.value,
         })
         .from(manualAssetSnapshots)
-        .where(gte(manualAssetSnapshots.snapshotDate, cutoffStr))
+        .innerJoin(
+          manualAssets,
+          eq(manualAssetSnapshots.manualAssetId, manualAssets.id)
+        )
+        .where(
+          and(
+            eq(manualAssets.userId, userId),
+            gte(manualAssetSnapshots.snapshotDate, cutoffStr)
+          )
+        )
         .orderBy(asc(manualAssetSnapshots.snapshotDate)),
     ]);
 
@@ -238,7 +284,10 @@ export async function getAccountBalanceHistories(
 // ---------------------------------------------------------------------------
 // Monthly income / spending / net trends
 // ---------------------------------------------------------------------------
-export async function getMonthlyTrends(months: number): Promise<
+export async function getMonthlyTrends(
+  userId: string,
+  months: number
+): Promise<
   Array<{ month: string; income: number; spending: number; net: number }>
 > {
   const cutoff = startOfMonth(subMonths(new Date(), months - 1));
@@ -252,6 +301,7 @@ export async function getMonthlyTrends(months: number): Promise<
     .from(transactions)
     .where(
       and(
+        eq(transactions.userId, userId),
         gte(transactions.date, cutoff),
         eq(transactions.isTransfer, false),
         eq(transactions.isHidden, false)
@@ -275,7 +325,10 @@ export async function getMonthlyTrends(months: number): Promise<
 // ---------------------------------------------------------------------------
 // Monthly spending by top-5 categories
 // ---------------------------------------------------------------------------
-export async function getMonthlyCategoryTrends(months: number): Promise<{
+export async function getMonthlyCategoryTrends(
+  userId: string,
+  months: number
+): Promise<{
   categories: string[];
   data: Array<Record<string, string | number>>;
 }> {
@@ -290,6 +343,7 @@ export async function getMonthlyCategoryTrends(months: number): Promise<{
     .from(transactions)
     .where(
       and(
+        eq(transactions.userId, userId),
         gte(transactions.date, cutoff),
         sql`${transactions.amount}::numeric < 0`,
         eq(transactions.isTransfer, false),

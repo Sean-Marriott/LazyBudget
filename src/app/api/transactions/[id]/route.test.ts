@@ -4,6 +4,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // to declare mock functions that are referenced inside the factory.
 const mockUpdateTransaction = vi.hoisted(() => vi.fn());
 
+const mockGetSessionUser = vi.hoisted(() =>
+  vi.fn().mockResolvedValue({ id: "user_1", email: "test@example.com" })
+);
+
+vi.mock("@/lib/session", () => ({
+  getSessionUser: mockGetSessionUser,
+}));
+
 vi.mock("@/lib/queries/transactions", () => ({
   updateTransaction: mockUpdateTransaction,
 }));
@@ -37,6 +45,15 @@ describe("PATCH /api/transactions/[id]", () => {
   beforeEach(() => {
     mockUpdateTransaction.mockReset();
     mockUpdateTransaction.mockResolvedValue(undefined);
+    mockGetSessionUser.mockResolvedValue({ id: "user_1", email: "test@example.com" });
+  });
+
+  it("returns 401 when there is no session", async () => {
+    mockGetSessionUser.mockResolvedValueOnce(null);
+    const req = makeRequest({ isTransfer: true });
+    const res = await PATCH(req, makeParams("tx_1"));
+    expect(res.status).toBe(401);
+    expect(mockUpdateTransaction).not.toHaveBeenCalled();
   });
 
   // -------------------------------------------------------------------------
@@ -156,14 +173,14 @@ describe("PATCH /api/transactions/[id]", () => {
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.ok).toBe(true);
-    expect(mockUpdateTransaction).toHaveBeenCalledWith("tx_1", { isTransfer: true });
+    expect(mockUpdateTransaction).toHaveBeenCalledWith("user_1", "tx_1", { isTransfer: true });
   });
 
   it("returns 200 ok with a minimal valid payload (isHidden only)", async () => {
     const req = makeRequest({ isHidden: false });
     const res = await PATCH(req, makeParams("tx_2"));
     expect(res.status).toBe(200);
-    expect(mockUpdateTransaction).toHaveBeenCalledWith("tx_2", { isHidden: false });
+    expect(mockUpdateTransaction).toHaveBeenCalledWith("user_1", "tx_2", { isHidden: false });
   });
 
   it("passes all valid fields to updateTransaction", async () => {
@@ -175,7 +192,7 @@ describe("PATCH /api/transactions/[id]", () => {
     });
     const res = await PATCH(req, makeParams("tx_3"));
     expect(res.status).toBe(200);
-    expect(mockUpdateTransaction).toHaveBeenCalledWith("tx_3", {
+    expect(mockUpdateTransaction).toHaveBeenCalledWith("user_1", "tx_3", {
       userCategory: "Groceries",
       notes: "Weekly shop",
       isTransfer: false,
@@ -187,42 +204,42 @@ describe("PATCH /api/transactions/[id]", () => {
     const req = makeRequest({ userCategory: "" });
     const res = await PATCH(req, makeParams("tx_4"));
     expect(res.status).toBe(200);
-    expect(mockUpdateTransaction).toHaveBeenCalledWith("tx_4", { userCategory: null });
+    expect(mockUpdateTransaction).toHaveBeenCalledWith("user_1", "tx_4", { userCategory: null });
   });
 
   it("passes explicit null userCategory through as null", async () => {
     const req = makeRequest({ userCategory: null });
     const res = await PATCH(req, makeParams("tx_5"));
     expect(res.status).toBe(200);
-    expect(mockUpdateTransaction).toHaveBeenCalledWith("tx_5", { userCategory: null });
+    expect(mockUpdateTransaction).toHaveBeenCalledWith("user_1", "tx_5", { userCategory: null });
   });
 
   it("coerces empty string notes to null", async () => {
     const req = makeRequest({ notes: "" });
     const res = await PATCH(req, makeParams("tx_6"));
     expect(res.status).toBe(200);
-    expect(mockUpdateTransaction).toHaveBeenCalledWith("tx_6", { notes: null });
+    expect(mockUpdateTransaction).toHaveBeenCalledWith("user_1", "tx_6", { notes: null });
   });
 
   it("trims id before calling updateTransaction", async () => {
     const req = makeRequest({ isTransfer: true });
     const res = await PATCH(req, makeParams("  tx_7  "));
     expect(res.status).toBe(200);
-    expect(mockUpdateTransaction).toHaveBeenCalledWith("tx_7", { isTransfer: true });
+    expect(mockUpdateTransaction).toHaveBeenCalledWith("user_1", "tx_7", { isTransfer: true });
   });
 
   it("accepts userCategory as a valid string", async () => {
     const req = makeRequest({ userCategory: "Entertainment" });
     const res = await PATCH(req, makeParams("tx_8"));
     expect(res.status).toBe(200);
-    expect(mockUpdateTransaction).toHaveBeenCalledWith("tx_8", { userCategory: "Entertainment" });
+    expect(mockUpdateTransaction).toHaveBeenCalledWith("user_1", "tx_8", { userCategory: "Entertainment" });
   });
 
   it("accepts explicit null notes", async () => {
     const req = makeRequest({ notes: null });
     const res = await PATCH(req, makeParams("tx_9"));
     expect(res.status).toBe(200);
-    expect(mockUpdateTransaction).toHaveBeenCalledWith("tx_9", { notes: null });
+    expect(mockUpdateTransaction).toHaveBeenCalledWith("user_1", "tx_9", { notes: null });
   });
 
   // -------------------------------------------------------------------------
@@ -232,6 +249,6 @@ describe("PATCH /api/transactions/[id]", () => {
     const req = makeRequest({ isHidden: true, someRandomField: "whatever" });
     const res = await PATCH(req, makeParams("tx_10"));
     expect(res.status).toBe(200);
-    expect(mockUpdateTransaction).toHaveBeenCalledWith("tx_10", { isHidden: true });
+    expect(mockUpdateTransaction).toHaveBeenCalledWith("user_1", "tx_10", { isHidden: true });
   });
 });

@@ -1,17 +1,22 @@
 import { TopBar } from "@/components/layout/TopBar";
 import { RulesSection } from "@/components/rules/RulesSection";
 import { getAllRules } from "@/lib/queries/rules";
+import { requireUser } from "@/lib/session";
 import { getAllCategories } from "@/lib/queries/categories";
 
 export const dynamic = "force-dynamic";
 
 export default async function RulesPage() {
+  const user = await requireUser();
   let rules: Awaited<ReturnType<typeof getAllRules>> = [];
   let customCats: Awaited<ReturnType<typeof getAllCategories>> = [];
   let dbError = false;
 
   try {
-    [rules, customCats] = await Promise.all([getAllRules(), getAllCategories()]);
+    [rules, customCats] = await Promise.all([
+      getAllRules(user.id),
+      getAllCategories(user.id),
+    ]);
   } catch {
     dbError = true;
   }

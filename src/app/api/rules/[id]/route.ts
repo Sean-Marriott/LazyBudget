@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getSessionUser } from "@/lib/session";
 import { getRuleById, updateRule, deleteRule } from "@/lib/queries/rules";
 import { getAllCategories } from "@/lib/queries/categories";
 import type { RuleInput } from "@/lib/queries/rules";
@@ -27,6 +28,9 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   const { id } = await params;
   const numId = Number(id);
   if (!Number.isInteger(numId) || numId <= 0) {
@@ -67,7 +71,7 @@ export async function PATCH(
       return NextResponse.json({ error: "invalid setCategory" }, { status: 400 });
     }
     if (!BUILTIN_CATEGORIES.has(setCategory)) {
-      const customCats = await getAllCategories();
+      const customCats = await getAllCategories(user.id);
       const customNames = new Set(customCats.map((c) => c.name));
       if (!customNames.has(setCategory)) {
         return NextResponse.json({ error: "invalid setCategory" }, { status: 400 });
@@ -84,7 +88,7 @@ export async function PATCH(
     return NextResponse.json({ error: "setHidden must be a boolean" }, { status: 400 });
   }
 
-  const existing = await getRuleById(numId);
+  const existing = await getRuleById(user.id, numId);
   if (!existing) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
@@ -118,7 +122,7 @@ export async function PATCH(
     );
   }
 
-  const rule = await updateRule(numId, data);
+  const rule = await updateRule(user.id, numId, data);
   if (!rule) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
@@ -129,12 +133,18 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   const { id } = await params;
   const numId = Number(id);
   if (!Number.isInteger(numId) || numId <= 0) {
     return NextResponse.json({ error: "invalid id" }, { status: 400 });
   }
 
-  await deleteRule(numId);
+  const deleted = await deleteRule(user.id, numId);
+  if (!deleted) {
+    return NextResponse.json({ error: "not found" }, { status: 404 });
+  }
   return new NextResponse(null, { status: 204 });
 }

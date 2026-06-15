@@ -4,6 +4,7 @@ import { TopBar } from "@/components/layout/TopBar";
 import { AccountCard } from "@/components/accounts/AccountCard";
 import { OtherAssetsSection } from "@/components/accounts/OtherAssetsSection";
 import { ManualAccountsSection } from "@/components/accounts/ManualAccountsSection";
+import { requireUser } from "@/lib/session";
 import { getAllAccounts, getNetWorthSummary } from "@/lib/queries/accounts";
 import { getAllManualAssets, getLatestManualAssetSnapshotDates } from "@/lib/queries/manual-assets";
 import { getAllManualAccounts, getLatestManualAccountSnapshotDates } from "@/lib/queries/manual-accounts";
@@ -11,6 +12,7 @@ import { formatCurrency } from "@/lib/utils/currency";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default async function AccountsPage() {
+  const user = await requireUser();
   let accounts: Awaited<ReturnType<typeof getAllAccounts>> = [];
   let manualAssets: Awaited<ReturnType<typeof getAllManualAssets>> = [];
   let manualAccounts: Awaited<ReturnType<typeof getAllManualAccounts>> = [];
@@ -21,12 +23,12 @@ export default async function AccountsPage() {
 
   try {
     [accounts, manualAssets, manualAccounts, summary, latestAccountSnapshotDates, latestAssetSnapshotDates] = await Promise.all([
-      getAllAccounts(),
-      getAllManualAssets(),
-      getAllManualAccounts(),
-      getNetWorthSummary(),
-      getLatestManualAccountSnapshotDates(),
-      getLatestManualAssetSnapshotDates(),
+      getAllAccounts(user.id),
+      getAllManualAssets(user.id),
+      getAllManualAccounts(user.id),
+      getNetWorthSummary(user.id),
+      getLatestManualAccountSnapshotDates(user.id),
+      getLatestManualAssetSnapshotDates(user.id),
     ]);
   } catch {
     dbError = true;
