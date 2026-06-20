@@ -15,6 +15,10 @@ jobs:
       - name: Create .env.local
         run: |
           cat << 'EOF' > .env.local
+          BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}
+          BETTER_AUTH_URL=${{ secrets.BETTER_AUTH_URL }}
+          TRUSTED_ORIGINS=${{ secrets.TRUSTED_ORIGINS }}
+          ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}
           AKAHU_USER_TOKEN=${{ secrets.AKAHU_USER_TOKEN }}
           AKAHU_APP_TOKEN=${{ secrets.AKAHU_APP_TOKEN }}
           EOF
