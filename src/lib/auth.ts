@@ -17,6 +17,7 @@ const trustedOrigins = [
   "http://localhost:3000",
   "http://localhost:3002",
   "http://localhost:4242",
+  "http://hal:4242",
   ...(process.env.BETTER_AUTH_URL
     ? [new URL(process.env.BETTER_AUTH_URL).origin]
     : []),
