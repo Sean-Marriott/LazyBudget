@@ -8,24 +8,26 @@ import { formatMonthLabel } from "@/lib/utils/dates";
 
 interface Props {
   month: Date;
+  basePath?: string;
 }
 
 /**
- * Render a month navigation control used by the cashflow view.
+ * Render a month navigation control.
  *
  * The control displays the given month as a label with left/right chevron buttons
  * to navigate to the previous or next month. Navigation updates the URL to
- * /cashflow?month=YYYY-MM. The "next" button is disabled when `month` is the
+ * {basePath}?month=YYYY-MM. The "next" button is disabled when `month` is the
  * current calendar month.
  *
  * @param month - Date representing the month to display and navigate from (year and month are used)
+ * @param basePath - Route to navigate within (defaults to /cashflow)
  * @returns A React element with month navigation buttons and a centered month label
  */
-export function MonthSelector({ month }: Props) {
+export function MonthSelector({ month, basePath = "/cashflow" }: Props) {
   const router = useRouter();
 
   function navigate(target: Date) {
-    router.push(`/cashflow?month=${format(target, "yyyy-MM")}`);
+    router.push(`${basePath}?month=${format(target, "yyyy-MM")}`);
   }
 
   const isCurrentMonth =

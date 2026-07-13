@@ -7,6 +7,8 @@ import {
   getCategoryById,
   deleteCategory,
 } from "@/lib/queries/categories";
+import { isUniqueViolation } from "@/lib/db/errors";
+import { cascadeCategoryRename } from "@/lib/queries/budgets";
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
@@ -65,7 +67,8 @@ export async function PATCH(
 
   try {
     const cat = await db.transaction(async (tx) => {
-      // Cascade rename: update userCategory on affected transactions atomically
+      // Cascade rename: update userCategory on affected transactions, and
+      // budgets.category on affected budget lines, atomically.
       if (data.name && data.name !== existing.name) {
         await tx
           .update(transactions)
@@ -76,6 +79,7 @@ export async function PATCH(
               eq(transactions.userCategory, existing.name)
             )
           );
+        await cascadeCategoryRename(tx, user.id, existing.name, data.name);
       }
 
       const [updated] = await tx
@@ -89,12 +93,7 @@ export async function PATCH(
     if (!cat) return NextResponse.json({ error: "not found" }, { status: 404 });
     return NextResponse.json(cat);
   } catch (err: unknown) {
-    if (
-      err &&
-      typeof err === "object" &&
-      "code" in err &&
-      (err as { code: string }).code === "23505"
-    ) {
+    if (isUniqueViolation(err)) {
       return NextResponse.json(
         { error: "A category with that name already exists" },
         { status: 409 }

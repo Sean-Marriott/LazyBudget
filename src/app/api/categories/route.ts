@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
 import { getAllCategories, createCategory } from "@/lib/queries/categories";
+import { isUniqueViolation } from "@/lib/db/errors";
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
@@ -49,12 +50,7 @@ export async function POST(request: Request) {
     });
     return NextResponse.json(cat, { status: 201 });
   } catch (err: unknown) {
-    if (
-      err &&
-      typeof err === "object" &&
-      "code" in err &&
-      (err as { code: string }).code === "23505"
-    ) {
+    if (isUniqueViolation(err)) {
       return NextResponse.json(
         { error: "A category with that name already exists" },
         { status: 409 }

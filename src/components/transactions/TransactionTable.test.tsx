@@ -202,6 +202,40 @@ describe("TransactionTable", () => {
   });
 
   // -------------------------------------------------------------------------
+  // Create-rule flow carries custom categories into the rule dialog
+  // -------------------------------------------------------------------------
+  it("offers custom categories in the rule dialog opened via the create-rule prompt", async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    });
+    render(
+      <TransactionTable
+        transactions={[makeTransaction({ description: "Netflix" })]}
+        customCategories={[{ name: "Subscriptions", color: "#bb9af7" }]}
+      />
+    );
+
+    // Open the edit dialog and assign the custom category
+    fireEvent.click(screen.getByText("Netflix").closest("tr")!);
+    fireEvent.change(screen.getByLabelText("Category"), {
+      target: { value: "Subscriptions" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    // Accept the "create a rule?" prompt
+    await screen.findByText("Create a rule?");
+    fireEvent.click(screen.getByRole("button", { name: "Create rule" }));
+
+    // The rule dialog must list the custom category and have it preselected
+    await screen.findByRole("heading", { name: "Add rule" });
+    const option = screen.getByRole("option", {
+      name: "Subscriptions",
+    }) as HTMLOptionElement;
+    expect(option.selected).toBe(true);
+  });
+
+  // -------------------------------------------------------------------------
   // Transfer row styling
   // -------------------------------------------------------------------------
   it("applies muted class to transfer transaction rows", () => {

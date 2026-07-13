@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { categories, transactions } from "@/lib/db/schema";
 import { eq, and, asc, sql } from "drizzle-orm";
+import { deleteBudgetsForCategory } from "@/lib/queries/budgets";
 
 export type Category = typeof categories.$inferSelect;
 
@@ -69,6 +70,7 @@ export async function deleteCategory(userId: string, id: number): Promise<void> 
             eq(transactions.userCategory, cat.name)
           )
         );
+      await deleteBudgetsForCategory(tx, userId, cat.name);
     }
     await tx
       .delete(categories)

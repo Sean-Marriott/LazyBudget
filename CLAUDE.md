@@ -13,9 +13,11 @@ npx tsc --noEmit     # Type check only
 
 npm test             # Run all tests once (vitest run)
 npm run test:watch   # Run tests in watch mode (vitest)
+npx vitest run src/lib/queries/rules.test.ts   # Run a single test file
+npx vitest run -t "pattern"                    # Run tests matching a name pattern
 
-npm run db:push      # Push schema to DB (use during development)
-npm run db:generate  # Generate migration files
+npm run db:push      # Push schema to DB (local development only — see Deployment)
+npm run db:generate  # Generate migration files (required for any schema change headed to master)
 npm run db:migrate   # Run migrations
 npm run db:studio    # Open Drizzle Studio (DB GUI)
 
@@ -32,6 +34,16 @@ docker compose down     # Stop PostgreSQL
 5. Add your Akahu personal-app tokens (from my.akahu.nz) on the **Settings** page, then click **Sync** in the top bar
 
 Upgrading a bank connection to official open banking at my.akahu.nz is safe — the next sync merges the migrated account/transaction records (see "Open banking migration" below).
+
+## Deployment
+
+**Every push to `master` auto-deploys** via `.github/workflows/deploy.yml` on a self-hosted runner: it writes `.env.local` from repo secrets and runs `docker compose up --build -d`. On container start, `entrypoint.sh` runs `npm run db:migrate` before `next start`.
+
+Consequences for schema changes:
+- Any schema change merged to master **must** ship with a generated migration (`npm run db:generate`, commit the files in `drizzle/migrations/`). `db:push` is for local iteration only and must never be used against the production DB — a forced push has caused data loss before.
+- The production DB holds real personal financial data; migrations must be non-destructive unless explicitly intended.
+
+Extra auth origins for LAN/hostname access are configured via the `TRUSTED_ORIGINS` env var (comma-separated, consumed in `src/lib/auth.ts`; docker-compose defaults it to `http://hal:4242`).
 
 ## Architecture
 
@@ -96,21 +108,13 @@ npm run test:watch   # watch mode
 
 **Config:** [`vitest.config.ts`](vitest.config.ts) — includes `src/**/*.test.{ts,tsx}`, jsdom environment, setup file at `src/test/setup.ts`.
 
-**Existing test files:**
-
-| File | What it covers |
-|---|---|
-| `src/app/api/rules/route.test.ts` | POST `/api/rules` — validation and creation |
-| `src/app/api/rules/[id]/route.test.ts` | PATCH/DELETE `/api/rules/[id]` — id validation, field validation, update logic, deletion |
-| `src/app/api/transactions/[id]/route.test.ts` | PATCH `/api/transactions/[id]` |
-| `src/lib/queries/rules.test.ts` | `applyRulesToTransactions` — matching, AND/OR combinators, first-match-wins |
-| `src/lib/akahu/migration.test.ts` | Open banking migration helpers — `getMigratedId`, account/transaction merging, inactive marking |
-| `src/lib/queries/transactions.test.ts` | Query helpers for transactions |
+**Where tests live:** colocated `*.test.ts(x)` next to their subject — API route handlers (`src/app/api/**`), query/migration/crypto/claim helpers (`src/lib/**`), and transaction UI components (`src/components/transactions/`).
 
 **Conventions:**
 - DB and external dependencies are mocked with `vi.hoisted(() => vi.fn())` — no real DB needed.
 - Route handler tests construct `Request` objects directly and call the exported handler functions (e.g. `PATCH`, `DELETE`).
 - `params` are passed as `{ params: Promise.resolve({ id }) }` to match the Next.js 16 async params signature.
+- Component tests render with `@testing-library/react` + `@testing-library/user-event` in jsdom.
 
 ## Database schema overview
 
