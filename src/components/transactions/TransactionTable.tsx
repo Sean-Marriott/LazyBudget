@@ -129,6 +129,7 @@ export function TransactionTable({ transactions, customCategories }: Transaction
           if (!open) setRulePrefill(null);
         }}
         initialValues={rulePrefill ?? undefined}
+        customCategories={customCategories}
       />
     </>
   );
